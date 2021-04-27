@@ -1,0 +1,17 @@
+[workspace]
+members = ["gru-vulkan-derive"]
+
+[package]
+name = "gru-vulkan"
+version = "0.1.0"
+authors = ["Jannik Fehre"]
+edition = "2018"
+
+[dependencies]
+gru-vulkan-derive = { path = "gru-vulkan-derive" }
+ash = "0.32.1"
+ash-window = "0.6.0"
+raw-window-handle = "0.3.3"
+inline-spirv = "0.1.2"
+vk-mem = "0.2.2"
+gru-math = { path = "../gru-misc/gru-math" }
