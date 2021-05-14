@@ -161,7 +161,6 @@ impl Device
             subpass_description.build()
         }).collect();
         //dependencies
-        //TODO refine implicit external dependencies?
         let mut subpass_dependencies = vec![];
         for (input_index, input) in all_input_references.iter().enumerate()
         {
@@ -182,6 +181,23 @@ impl Device
                 }
             }
         }
+        /* SaschaWillems shadow map example
+        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[0].dstSubpass = 0;
+        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+
+        dependencies[1].srcSubpass = 0;
+        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
+        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
+        */
         //render pass
         let render_pass_info = vk::RenderPassCreateInfo::builder()
             .attachments(&attachments)
@@ -373,15 +389,15 @@ pub struct Subpass<'a>
     pub depth_attachment: bool
 }
 
-pub enum FramebufferAttachment<'a, 'b>
+pub enum FramebufferAttachment<'a>
 {
     Swapchain(SwapchainImage<'a>),
-    Image(&'b Image)
+    Image(&'a Image)
 }
 
-impl<'a, 'b> FramebufferAttachment<'a, 'b>
+impl<'a> FramebufferAttachment<'a>
 {
-	fn dimensions(&self) -> (u32, u32)
+	const fn dimensions(&self) -> (u32, u32)
 	{
 		match self
 		{

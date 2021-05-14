@@ -21,10 +21,10 @@ impl Device
         DescriptorSetLayout(std::rc::Rc::new(RawDescriptorSetLayout { device: self.0.clone(), set, bindings, descriptor_set_layout }))
     }
 
-    pub fn new_descriptor_sets(&self, set_layouts: Vec<(&DescriptorSetLayout, u32)>) -> Vec<Vec<DescriptorSet>>
+    pub fn new_descriptor_sets(&self, set_layouts: &[(&DescriptorSetLayout, u32)]) -> Vec<Vec<DescriptorSet>>
     {
         let (mut set_count, mut struct_count, mut sampler_count, mut input_attachment_count) = (0, 0, 0, 0);
-        for (layout, count) in &set_layouts
+        for (layout, count) in set_layouts
         {
             set_count += count;
             let (a, b, c) = layout.0.type_count();

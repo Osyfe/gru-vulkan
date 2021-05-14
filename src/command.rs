@@ -32,6 +32,7 @@ pub enum DrawMode<'a>
 
 impl<'a> CommandBuffer<'a>
 {
+    #[inline]
     pub fn record<'b>(&'b mut self) -> CommandBufferRecord<'a, 'b>
     {
         let command_buffer_begin_info = vk::CommandBufferBeginInfo::builder()
@@ -40,6 +41,7 @@ impl<'a> CommandBuffer<'a>
         CommandBufferRecord { buffer: self }
     }
 
+    #[inline]
     pub fn submit(&self, queue: &Queue, wait: &Semaphore, signal: &Semaphore, mark: &Fence)
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::submit: Wrong queue family."); }
@@ -62,6 +64,7 @@ pub struct CommandBufferRecord<'a, 'b>
             
 impl<'a, 'b> CommandBufferRecord<'a, 'b>
 {
+    #[inline]
     pub fn render_pass<'c>(&'c mut self, render_pass: &RenderPass, framebuffer: &Framebuffer) -> CommandBufferRecordRenderPass<'a, 'b, 'c>
     {
         let (width, height) = framebuffer.size;
@@ -117,6 +120,7 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
 
 impl Drop for CommandBufferRecord<'_, '_>
 {
+    #[inline]
     fn drop(&mut self)
     {
         unsafe { self.buffer.pool.device.logical_device.end_command_buffer(self.buffer.command_buffer) }.unwrap();
@@ -130,26 +134,34 @@ pub struct CommandBufferRecordRenderPass<'a, 'b, 'c>
 
 impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
 {
+    #[inline]
     pub fn next_subpass(&mut self) -> &mut Self
     {
         unsafe { self.record.buffer.pool.device.logical_device.cmd_next_subpass(self.record.buffer.command_buffer, vk::SubpassContents::INLINE); }
         self
     }
 
+    #[inline]
     pub fn bind_pipeline(&mut self, pipeline: &Pipeline) -> &mut Self
     {
         unsafe { self.record.buffer.pool.device.logical_device.cmd_bind_pipeline(self.record.buffer.command_buffer, vk::PipelineBindPoint::GRAPHICS, pipeline.pipeline); }
         self
     }
 
-    pub fn bind_attributes(&mut self, attributes: &[&AttributeBinding]) -> &mut Self
+    #[inline]
+    pub fn bind_attributes<const N: usize>(&mut self, attributes: [&AttributeBinding; N]) -> &mut Self
     {
-        //TODO eventuell SmallVec?
-        let (buffers, offsets_in_bytes): (Vec<vk::Buffer>, Vec<u64>) = attributes.iter().map(|binding| { (binding.buffer.buffer, binding.offset_in_bytes) }).unzip();
+        let (mut buffers, mut offsets_in_bytes) = ([Default::default(); N], [Default::default(); N]);
+        for (i, binding) in attributes.iter().enumerate()
+        {
+            buffers[i] = binding.buffer.buffer;
+            offsets_in_bytes[i] = binding.offset_in_bytes;
+        }
         unsafe { self.record.buffer.pool.device.logical_device.cmd_bind_vertex_buffers(self.record.buffer.command_buffer, 0, &buffers, &offsets_in_bytes); }
         self
     }
 
+    #[inline]
     pub fn bind_descriptor_sets(&mut self, pipeline_layout: &PipelineLayout, descriptor_sets: &[&DescriptorSet]) -> &mut Self
     {
         for set in descriptor_sets
@@ -170,6 +182,7 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
         self
     }
 
+    #[inline]
     pub fn draw(&mut self, draw_mode: &DrawMode, instance_count: u32) -> &mut Self
     {
         match draw_mode
@@ -190,6 +203,7 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
 
 impl Drop for CommandBufferRecordRenderPass<'_, '_, '_>
 {
+    #[inline]
     fn drop(&mut self)
     {
         unsafe { self.record.buffer.pool.device.logical_device.cmd_end_render_pass(self.record.buffer.command_buffer); }

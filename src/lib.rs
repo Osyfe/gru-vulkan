@@ -30,13 +30,18 @@ pub use command::*;
 
 //     #####     INSTANCE     #####
 
+struct Surface
+{
+    loader: ash::extensions::khr::Surface,
+    surface: vk::SurfaceKHR
+}
+
 pub struct Instance
 {
     _entry: ash::Entry,
     debug: Option<(DebugUtils, vk::DebugUtilsMessengerEXT)>,
     instance: ash::Instance,
-    surface_loader: ash::extensions::khr::Surface,
-    surface: vk::SurfaceKHR
+    surface: Option<Surface>
 }
 
 pub struct PhysicalDevice
@@ -90,7 +95,7 @@ pub struct Swapchain
     height: u32,
     swapchain_loader: ash::extensions::khr::Swapchain,
     swapchain: vk::SwapchainKHR,
-    _swapchain_images: Vec<vk::Image>,
+    swapchain_images: Vec<vk::Image>,
     swapchain_image_views: Vec<vk::ImageView>,
     count: usize,
     cycle_index: std::cell::Cell<usize>
@@ -98,6 +103,7 @@ pub struct Swapchain
 
 pub struct SwapchainImage<'a>
 {
+    image: &'a vk::Image,
     image_view: &'a vk::ImageView,
     width: u32,
     height: u32
@@ -139,7 +145,7 @@ pub struct AttributeGroupInfo
     attributes: &'static [(AttributeLocation, AttributeType)],
 }
 
-pub struct BufferLayout
+pub struct BufferType
 {
     id: u32,
     offset_in_bytes: u64,
@@ -165,8 +171,7 @@ pub struct Buffer
     allocation: vk_mem::Allocation,
     _allocation_info: vk_mem::AllocationInfo,
     buffer: vk::Buffer,
-    memory_type: MemoryType,
-    transfer_type: TransferType,
+    buffer_usage: BufferUsage,
     layout_id: u32,
     size_in_bytes: u64
 }
@@ -179,19 +184,6 @@ pub enum ImageLayout
     Undefined,
     Attachment,
     Shader
-}
-
-impl ImageLayout
-{
-    const fn vk_image_layout(&self, depth: bool) -> vk::ImageLayout
-    {
-        match self
-        {
-            ImageLayout::Undefined => vk::ImageLayout::UNDEFINED,
-            ImageLayout::Attachment => if depth { vk::ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL } else { vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL },
-            ImageLayout::Shader => if depth { vk::ImageLayout::DEPTH_STENCIL_READ_ONLY_OPTIMAL } else { vk::ImageLayout::SHADER_READ_ONLY_OPTIMAL }
-        }
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -208,36 +200,6 @@ pub enum ImageChannelType
     RSint,
     RUint,
     DSfloat
-}
-
-impl ImageChannelType
-{
-    const fn vk_format(&self) -> vk::Format
-    {
-        match self
-        {
-            ImageChannelType::BgraSrgb => vk::Format::B8G8R8A8_SRGB,
-            ImageChannelType::BgraSnorm => vk::Format::B8G8R8A8_SNORM,
-            ImageChannelType::BgraUnorm => vk::Format::B8G8R8A8_UNORM,
-            ImageChannelType::BgraSint => vk::Format::B8G8R8A8_SINT,
-            ImageChannelType::BgraUint => vk::Format::B8G8R8A8_UINT,
-            ImageChannelType::RSrgb => vk::Format::R8_SRGB,
-            ImageChannelType::RSnorm => vk::Format::R8_SNORM,
-            ImageChannelType::RUnorm => vk::Format::R8_UNORM,
-            ImageChannelType::RSint => vk::Format::R8_SINT,
-            ImageChannelType::RUint => vk::Format::R8_UINT,
-            ImageChannelType::DSfloat => vk::Format::D32_SFLOAT
-        }
-    }
-
-    const fn has_depth(&self) -> bool
-    {
-        match self
-        {
-            ImageChannelType::DSfloat => true,
-            _ => false
-        }
-    }
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -257,42 +219,11 @@ pub enum Msaa
     X4
 }
 
-impl Msaa
-{
-    const fn vk_sample_count(&self) -> vk::SampleCountFlags
-    {
-        match self
-        {
-            Msaa::None => vk::SampleCountFlags::TYPE_1,
-            Msaa::X2 => vk::SampleCountFlags::TYPE_2,
-            Msaa::X4 => vk::SampleCountFlags::TYPE_4
-        }
-    }
-}
-
 #[derive(Clone, Copy)]
 pub enum ImageUsage
 {
     Texture { mipmapping: bool },
-    Attachment { depth: bool, samples: Msaa, texture: bool }
-}
-
-impl ImageUsage
-{
-    const fn depth(&self) -> bool
-    {
-        match self
-        {
-            ImageUsage::Attachment { depth: true, .. } => true,
-             _ => false
-        }
-    }
-
-    const fn vk_sample_count(&self) -> vk::SampleCountFlags
-    {
-        if let ImageUsage::Attachment { samples, .. } = self { samples.vk_sample_count() }
-        else { vk::SampleCountFlags::TYPE_1 }
-    }
+    Attachment { depth: bool, samples: Msaa, texture: bool, transfer_src: bool }
 }
 
 pub struct Image

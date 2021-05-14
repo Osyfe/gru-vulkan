@@ -162,8 +162,7 @@ pub enum PipelineTopology
 {
     PointList,
     LineList,
-    TriangleList,
-    
+    TriangleList
 }
 
 impl PipelineTopology

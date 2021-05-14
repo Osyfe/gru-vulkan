@@ -1,14 +1,6 @@
 use super::*;
 use std::os::raw::c_char;
 
-fn extension_name_pointers(window: &dyn raw_window_handle::HasRawWindowHandle) -> Vec<*const c_char>
-{
-    let mut extension_name_pointers = vec![];
-    ash_window::enumerate_required_extensions(window).unwrap().iter().for_each(|extension| extension_name_pointers.push(extension.as_ptr()));
-    if DEBUG_MODE { extension_name_pointers.push(ash::extensions::ext::DebugUtils::name().as_ptr()); }
-    extension_name_pointers
-}
-
 fn layer_name_pointers() -> (Vec<std::ffi::CString>, Vec<*const c_char>)
 {
     let layer_names: Vec<std::ffi::CString> = if DEBUG_MODE
@@ -22,6 +14,14 @@ fn layer_name_pointers() -> (Vec<std::ffi::CString>, Vec<*const c_char>)
     } else { vec![] };
     let layer_name_pointers = layer_names.iter().map(|layer_name| layer_name.as_ptr()).collect();
     (layer_names, layer_name_pointers)
+}
+
+fn extension_name_pointers(window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> Vec<*const c_char>
+{
+    let mut extension_name_pointers = vec![];
+    if let Some(window) = window { ash_window::enumerate_required_extensions(window).unwrap().iter().for_each(|extension| extension_name_pointers.push(extension.as_ptr())); }
+    if DEBUG_MODE { extension_name_pointers.push(ash::extensions::ext::DebugUtils::name().as_ptr()); }
+    extension_name_pointers
 }
 
 fn surface(entry: &ash::Entry, instance: &ash::Instance, window: &dyn raw_window_handle::HasRawWindowHandle) -> vk::SurfaceKHR
@@ -47,7 +47,7 @@ unsafe extern "system" fn vulkan_debug_utils_callback
 
 impl Instance
 {
-    pub fn new(window: &dyn raw_window_handle::HasRawWindowHandle) -> Self
+    pub fn new(window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> Self
     {
         let entry = unsafe { ash::Entry::new() }.unwrap();
        
@@ -95,11 +95,14 @@ impl Instance
             ))
         } else { None };
         
-        let surface_loader = ash::extensions::khr::Surface::new(&entry, &instance);
-        let surface = surface(&entry, &instance, window);
+        let surface = window.map(|window|
+        {
+            let loader = ash::extensions::khr::Surface::new(&entry, &instance);
+            let surface = surface(&entry, &instance, window);
+            Surface { loader, surface }
+        });
         
-        let instance = Instance { _entry: entry, debug: debug_utils, instance, surface_loader, surface };
-        instance
+        Self { _entry: entry, debug: debug_utils, instance, surface }
     }
     
     pub fn physical_devices(&self) -> Vec<PhysicalDevice>
@@ -114,7 +117,11 @@ impl Instance
                 {
                     index,
                     queue_family_properties: *queue_family_properties,
-                    surface_support: unsafe { &self.surface_loader.get_physical_device_surface_support(*physical_device, index as u32, self.surface) }.unwrap()
+                    surface_support: match &self.surface
+                    {
+                        Some(surface) => unsafe { surface.loader.get_physical_device_surface_support(*physical_device, index as u32, surface.surface) }.unwrap(),
+                        None => false
+                    }
                 }).collect();
             PhysicalDevice
             {

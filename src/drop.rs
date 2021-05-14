@@ -6,7 +6,7 @@ impl Drop for Instance
     {
         unsafe
         {
-            self.surface_loader.destroy_surface(self.surface, None);
+            if let Some(surface) = &self.surface { surface.loader.destroy_surface(surface.surface, None); }
             if let Some((debug_utils, debug_utils_messenger)) = &self.debug { debug_utils.destroy_debug_utils_messenger(*debug_utils_messenger, None); }
             self.instance.destroy_instance(None);
         }
@@ -123,10 +123,7 @@ impl Drop for Pipeline
 {
     fn drop(&mut self)
     {
-        unsafe
-        {
-            self.device.logical_device.destroy_pipeline(self.pipeline, None);
-        }
+        unsafe { self.device.logical_device.destroy_pipeline(self.pipeline, None); }
     }
 }
 
