@@ -2,13 +2,16 @@ use super::*;
 
 impl Device
 {
-    pub fn new_swapchain(&self, old_swapchain: Option<Swapchain>, (width, height): (u32, u32), v_sync: bool) -> Swapchain
+    pub fn new_swapchain(&self, old_swapchain: Option<Swapchain>, (mut width, mut height): (u32, u32), v_sync: bool) -> Option<Swapchain>
     {
         std::mem::drop(old_swapchain);
         let surface = self.0.instance.surface.as_ref().expect("Device::new_swapchain: A swapchain needs a surface.");
+        if width == 0 { width = 1; }
+        if height == 0 { height = 1; }
         let surface_loader = &surface.loader;
         let surface = &surface.surface;
         let surface_capabilities = unsafe { surface_loader.get_physical_device_surface_capabilities(self.0.physical_device, *surface) }.unwrap();
+        if surface_capabilities.current_extent.width == 0 || surface_capabilities.current_extent.height == 0 { return None; }
         let present_modes = unsafe { surface_loader.get_physical_device_surface_present_modes(self.0.physical_device, *surface) }.unwrap();
         let v_sync_mode =
             if present_modes.iter().any(|mode| *mode == vk::PresentModeKHR::FIFO_RELAXED) { vk::PresentModeKHR::FIFO_RELAXED }
@@ -49,14 +52,15 @@ impl Device
         }).collect();
         let count = swapchain_images.len();
 
-        Swapchain
+        let swapchain = Swapchain
         {
             device: self.0.clone(),
             width, height,
             swapchain_loader, swapchain,
             swapchain_images, swapchain_image_views,
             count, cycle_index: std::cell::Cell::new(0)
-        }
+        };
+        Some(swapchain)
     }
 }
 

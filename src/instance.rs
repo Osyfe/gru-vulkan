@@ -51,8 +51,8 @@ impl Instance
     {
         let entry = unsafe { ash::Entry::new() }.unwrap();
        
-        let enginename = std::ffi::CString::new("Osyfe Game Engine").unwrap();
-        let app_name = std::ffi::CString::new("Osyfe App").unwrap();
+        let enginename = std::ffi::CString::new("gru-vulkan").unwrap();
+        let app_name = std::ffi::CString::new("osyfe app").unwrap();
         let app_info = vk::ApplicationInfo::builder()
             .application_name(&app_name)
             .application_version(vk::make_version(0, 0, 1))

@@ -1,3 +1,4 @@
+swapchain width/height parameters
 test screenshot from not swapchain image (memorybarrier...)
 swapchain vk::ImageUsage::TRANSFER_SRC optional?
 std140 problem (https://docs.rs/glsl-layout/0.4.0/glsl_layout/index.html vs https://docs.rs/std140/0.2.4/std140/)

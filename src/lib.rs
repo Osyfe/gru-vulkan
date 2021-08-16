@@ -185,7 +185,7 @@ pub enum ImageLayout
     Attachment,
     Shader
 }
-
+//3 channel images take the same space as 4 channels, therefore we do not support those
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum ImageChannelType
 {
