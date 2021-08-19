@@ -55,10 +55,10 @@ impl Instance
         let app_name = std::ffi::CString::new("osyfe app").unwrap();
         let app_info = vk::ApplicationInfo::builder()
             .application_name(&app_name)
-            .application_version(vk::make_version(0, 0, 1))
+            .application_version(vk::make_api_version(0, 0, 0, 1))
             .engine_name(&enginename)
-            .engine_version(vk::make_version(0, 1, 0))
-            .api_version(vk::make_version(1, 0, 106));
+            .engine_version(vk::make_api_version(0, 0, 0, 1))
+            .api_version(vk::make_api_version(0, 1, 0, 106));
             
         let (_layer_names, layer_name_pointers) = layer_name_pointers();
         let extension_name_pointers = extension_name_pointers(window);
@@ -132,7 +132,7 @@ impl Instance
         }).collect()
     }
     
-    pub fn logical_device(self, physical_device: &PhysicalDevice, queues: Vec<(&QueueFamilyInfo, Vec<f32>)>) -> Device
+    pub fn logical_device(self, physical_device: &PhysicalDevice, queues: &[(&QueueFamilyInfo, &[f32])]) -> Device
     {
         let PhysicalDevice { physical_device, physical_device_properties: _, queue_family_properties } = physical_device;
         let queue_infos = &queues.iter().map(|(queue_family_info, priorities)|

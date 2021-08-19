@@ -2,12 +2,10 @@ use super::*;
 
 impl Device
 {
-    pub fn new_swapchain(&self, old_swapchain: Option<Swapchain>, (mut width, mut height): (u32, u32), v_sync: bool) -> Option<Swapchain>
+    pub fn new_swapchain(&self, old_swapchain: Option<Swapchain>, v_sync: bool) -> Option<Swapchain>
     {
         std::mem::drop(old_swapchain);
         let surface = self.0.instance.surface.as_ref().expect("Device::new_swapchain: A swapchain needs a surface.");
-        if width == 0 { width = 1; }
-        if height == 0 { height = 1; }
         let surface_loader = &surface.loader;
         let surface = &surface.surface;
         let surface_capabilities = unsafe { surface_loader.get_physical_device_surface_capabilities(self.0.physical_device, *surface) }.unwrap();
@@ -52,6 +50,7 @@ impl Device
         }).collect();
         let count = swapchain_images.len();
 
+        let vk::Extent2D { width, height } = surface_capabilities.current_extent;
         let swapchain = Swapchain
         {
             device: self.0.clone(),
@@ -113,6 +112,8 @@ impl Swapchain
             height: self.height
         }
     }
+
+    pub fn dimensions(&self) -> (u32, u32) { (self.width, self.height) }
 
     pub fn new_objects<T>(&self, constructor: &mut dyn FnMut(&SwapchainObjectIndex) -> T) -> SwapchainObjects<T>
     {

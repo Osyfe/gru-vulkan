@@ -234,6 +234,7 @@ pub struct PipelineInfo
     pub blend: bool
 }
 
+/*
 impl PipelineInfo
 {
     pub fn new(width: u32, height: u32) -> Self
@@ -255,3 +256,4 @@ impl PipelineInfo
         }
     }
 }
+*/

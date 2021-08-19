@@ -110,7 +110,7 @@ impl ImageBuffer
 		if data.len() as u64 != self.image_type.layer_size_in_bytes() { panic!("ImageBuffer::write: Incompatible buffer size."); }
 		let buffer_ptr = self.device.allocator.map_memory(&self.allocation).unwrap();
         unsafe { buffer_ptr.copy_from_nonoverlapping(data.as_ptr(), data.len()); }
-        self.device.allocator.unmap_memory(&self.allocation).unwrap();
+        self.device.allocator.unmap_memory(&self.allocation);
 	}
 
     pub fn read(&mut self, data: &mut [u8])
@@ -118,7 +118,7 @@ impl ImageBuffer
         if data.len() as u64 != self.image_type.layer_size_in_bytes() { panic!("ImageBuffer::write: Incompatible buffer size."); }
         let buffer_ptr = self.device.allocator.map_memory(&self.allocation).unwrap();
         unsafe { data.as_mut_ptr().copy_from_nonoverlapping(buffer_ptr, data.len()); }
-        self.device.allocator.unmap_memory(&self.allocation).unwrap();
+        self.device.allocator.unmap_memory(&self.allocation);
     }
 }
 

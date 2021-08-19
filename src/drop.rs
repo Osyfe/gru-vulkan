@@ -41,7 +41,7 @@ impl Drop for Buffer
 {
     fn drop(&mut self)
     {
-        self.device.allocator.destroy_buffer(self.buffer, &self.allocation).unwrap();
+        self.device.allocator.destroy_buffer(self.buffer, &self.allocation);
     }
 }
 
@@ -53,7 +53,7 @@ impl Drop for Image
         {
             self.device.logical_device.destroy_image_view(self.image_view, None);
         }
-        self.device.allocator.destroy_image(self.image, &self.allocation).unwrap();
+        self.device.allocator.destroy_image(self.image, &self.allocation);
     }
 }
 
@@ -61,7 +61,7 @@ impl Drop for ImageBuffer
 {
     fn drop(&mut self)
     {
-        self.device.allocator.destroy_buffer(self.buffer, &self.allocation).unwrap();
+        self.device.allocator.destroy_buffer(self.buffer, &self.allocation);
     }
 }
 

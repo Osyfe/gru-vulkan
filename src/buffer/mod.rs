@@ -200,7 +200,7 @@ impl Drop for BufferMap<'_>
     #[inline]
     fn drop(&mut self)
     {
-        self.buffer.device.allocator.unmap_memory(&self.buffer.allocation).unwrap();
+        self.buffer.device.allocator.unmap_memory(&self.buffer.allocation);
     }
 }
 

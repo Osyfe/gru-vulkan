@@ -3,7 +3,7 @@ pub const DEBUG_MODE: bool = cfg!(debug_assertions);
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
 use ash_window;
-use ash::{self, vk, version::{EntryV1_0, InstanceV1_0, DeviceV1_0}, extensions::ext::DebugUtils};
+use ash::{self, vk, extensions::ext::DebugUtils};
 
 pub use gru_vulkan_derive::{VertexAttributeGroupReprCpacked, InstanceAttributeGroupReprCpacked, DescriptorStructReprC};
 pub use inline_spirv::include_spirv;
