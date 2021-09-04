@@ -1,7 +1,7 @@
-use super::*;
-
 mod stuff;
 pub use stuff::*;
+
+use super::*;
 
 impl Device
 {

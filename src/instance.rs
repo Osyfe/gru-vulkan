@@ -132,12 +132,14 @@ impl Instance
         }).collect()
     }
     
-    pub fn logical_device(self, physical_device: &PhysicalDevice, queues: &[(&QueueFamilyInfo, &[f32])]) -> Device
+    pub fn logical_device<'a, A: AsRef<[f32]>, B: AsRef<[(&'a QueueFamilyInfo, A)]>>(self, physical_device: &PhysicalDevice, queues: B) -> Device
     {
         let PhysicalDevice { physical_device, physical_device_properties: _, queue_family_properties } = physical_device;
-        let queue_infos = &queues.iter().map(|(queue_family_info, priorities)|
+        let queue_infos = &queues.as_ref().iter().map(|(queue_family_info, priorities)|
         {
+            let priorities = priorities.as_ref();
             let index = queue_family_info.index;
+            if priorities.len() == 0 { panic!("Instance::logical_device: No requested queue in queue family {}", index); }
             if priorities.len() > queue_family_properties[index].count() as usize { panic!("Instance::logical_device: Too many requested queues in queue family {}", index); }
             if let Some(priority) = priorities.iter().find(|priority| *priority < &0f32 || *priority > &1f32) { panic!("Instance::logical_device: Invalid priority {}", priority); }
             vk::DeviceQueueCreateInfo::builder()
@@ -165,8 +167,9 @@ impl Instance
             .enabled_features(&physical_device_features);
         let logical_device = unsafe { self.instance.create_device(*physical_device, &device_create_info, None).unwrap() };
         
-        let queue_families = queues.iter().map(|(queue_family_info, priorities)|
+        let queue_families = queues.as_ref().iter().map(|(queue_family_info, priorities)|
         {
+            let priorities = priorities.as_ref();
             let index = queue_family_info.index;
             let queues = priorities.iter().enumerate().map
             (|(queue_index, _priority)|
@@ -197,7 +200,7 @@ impl Instance
             logical_device,
             allocator,
             queue_families,
-            buffer_layout_count: std::sync::Mutex::new(0)
+            buffer_layout_count: std::sync::atomic::AtomicU32::new(0)
         }))
     }
 }
@@ -221,4 +224,12 @@ impl QueueFamilyInfo
     pub fn supports_transfer(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::TRANSFER) }
     //pub fn supports_sparse_binding(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::SPARSE_BINDING) }
     pub fn supports_surface(&self) -> bool { self.surface_support }
+}
+
+impl PartialEq for QueueFamilyInfo
+{
+    fn eq(&self, other: &Self) -> bool
+    {
+        self.index == other.index
+    }
 }

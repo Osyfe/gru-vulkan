@@ -161,6 +161,18 @@ impl<T> SwapchainObjects<T>
     {
         self.objects.iter_mut()
     }
+
+    #[inline]
+    pub fn map<U, F: FnMut(&T) -> U>(&self, f: F) -> SwapchainObjects<U>
+    {
+        SwapchainObjects { objects: self.objects.iter().map(f).collect() }
+    }
+
+    #[inline]
+    pub fn into_map<U, F: FnMut(T) -> U>(self, f: F) -> SwapchainObjects<U>
+    {
+        SwapchainObjects { objects: self.objects.into_iter().map(f).collect() }
+    }
 }
 
 pub struct SwapchainCycle<T>
@@ -192,5 +204,17 @@ impl<T> SwapchainCycle<T>
     pub fn iter_mut(&mut self) -> std::slice::IterMut<T>
     {
         self.objects.iter_mut()
+    }
+
+    #[inline]
+    pub fn map<U, F: FnMut(&T) -> U>(&self, f: F) -> SwapchainCycle<U>
+    {
+        SwapchainCycle { objects: self.objects.iter().map(f).collect() }
+    }
+
+    #[inline]
+    pub fn into_map<U, F: FnMut(T) -> U>(self, f: F) -> SwapchainCycle<U>
+    {
+        SwapchainCycle { objects: self.objects.into_iter().map(f).collect() }
     }
 }

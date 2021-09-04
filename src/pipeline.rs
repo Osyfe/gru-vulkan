@@ -1,3 +1,6 @@
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 use super::*;
 
 pub type Shader = &'static [u32];
@@ -58,7 +61,7 @@ impl Device
             .stage(vk::ShaderStageFlags::FRAGMENT)
             .module(fragment_shader_module)
             .name(&main_function_name);
-        let shader_stages = vec![vertex_shader_stage.build(), fragment_shader_stage.build()];
+        let shader_stages = [vertex_shader_stage.build(), fragment_shader_stage.build()];
         //attributes
         let mut vertex_binding_descriptions = Vec::new();
         let mut vertex_attribute_descriptions = Vec::new();
@@ -158,6 +161,7 @@ impl Device
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum PipelineTopology
 {
     PointList,
@@ -178,6 +182,7 @@ impl PipelineTopology
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum PipelinePolygon
 {
     Point,
@@ -198,6 +203,7 @@ impl PipelinePolygon
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum PipelineCull
 {
     None,
@@ -218,6 +224,7 @@ impl PipelineCull
     }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PipelineInfo
 {
     pub viewport_origin: (f32, f32),

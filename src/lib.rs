@@ -1,12 +1,7 @@
+#[cfg(feature = "serde")]
+use serde::{Serialize, Deserialize};
+
 pub const DEBUG_MODE: bool = cfg!(debug_assertions);
-
-use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
-use ash_window;
-use ash::{self, vk, extensions::ext::DebugUtils};
-
-pub use gru_vulkan_derive::{VertexAttributeGroupReprCpacked, InstanceAttributeGroupReprCpacked, DescriptorStructReprC};
-pub use inline_spirv::include_spirv;
 
 mod drop;
 mod instance;
@@ -27,6 +22,14 @@ pub use buffer::*;
 pub use image::*;
 pub use descriptor::*;
 pub use command::*;
+
+use std::marker::PhantomData;
+use std::sync::{Arc, Mutex};
+use ash_window;
+use ash::{self, vk, extensions::ext::DebugUtils};
+
+pub use gru_vulkan_derive::{VertexAttributeGroupReprCpacked, InstanceAttributeGroupReprCpacked, DescriptorStructReprC};
+pub use inline_spirv::include_spirv;
 
 //     #####     INSTANCE     #####
 
@@ -82,7 +85,7 @@ struct RawDevice
     logical_device: ash::Device,
     allocator: vk_mem::Allocator,
     queue_families: Vec<QueueFamily>,
-    buffer_layout_count: std::sync::Mutex<u32>
+    buffer_layout_count: std::sync::atomic::AtomicU32
 }
 
 #[derive(Clone)]
@@ -212,6 +215,7 @@ pub struct ImageType
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Msaa
 {
     None,

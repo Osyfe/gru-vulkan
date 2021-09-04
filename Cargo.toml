@@ -7,6 +7,9 @@ version = "0.1.0"
 authors = ["Jannik Fehre"]
 edition = "2018"
 
+[features]
+math = ["gru-misc/math"]
+
 [dependencies]
 gru-vulkan-derive = { path = "gru-vulkan-derive" }
 ash = "0.33.0"
@@ -14,4 +17,5 @@ ash-window = "0.7.0"
 raw-window-handle = "0.3.3"
 inline-spirv = "0.1.2"
 vk-mem = { git = "https://github.com/aclysma/vk-mem-rs.git", branch = "ash-0.33-build-fix" }
-gru-math = { path = "../gru-misc/gru-math" }
+gru-misc = { path = "../gru-misc", optional = true }
+serde = { version = "1.0.129", default-features = false, features = ["derive"], optional = true }

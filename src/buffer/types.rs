@@ -1,4 +1,6 @@
 use super::*;
+#[cfg(feature = "math")]
+use gru_misc::math::{Vec2, Vec3, Vec4};
 
 impl IndexType for u16
 {
@@ -79,6 +81,7 @@ impl Into<(f32, f32)> for F2
     }
 }
 
+#[cfg(feature = "math")]
 impl From<Vec2> for F2
 {
     #[inline]
@@ -88,6 +91,7 @@ impl From<Vec2> for F2
     }
 }
 
+#[cfg(feature = "math")]
 impl Into<Vec2> for F2
 {
     #[inline]
@@ -119,6 +123,7 @@ impl Into<(f32, f32, f32)> for F3
     }
 }
 
+#[cfg(feature = "math")]
 impl From<Vec3> for F3
 {
     #[inline]
@@ -128,6 +133,7 @@ impl From<Vec3> for F3
     }
 }
 
+#[cfg(feature = "math")]
 impl Into<Vec3> for F3
 {
     #[inline]
@@ -159,6 +165,7 @@ impl Into<(f32, f32, f32, f32)> for F4
     }
 }
 
+#[cfg(feature = "math")]
 impl From<Vec4> for F4
 {
     #[inline]
@@ -168,6 +175,7 @@ impl From<Vec4> for F4
     }
 }
 
+#[cfg(feature = "math")]
 impl Into<Vec4> for F4
 {
     #[inline]
