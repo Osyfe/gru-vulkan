@@ -1,12 +1,12 @@
+draw: separate index binding & all params?
 test screenshot from not swapchain image (memorybarrier...)
 swapchain vk::ImageUsage::TRANSFER_SRC optional?
 std140 problem (https://docs.rs/glsl-layout/0.4.0/glsl_layout/index.html vs https://docs.rs/std140/0.2.4/std140/)
-push constants
 compute shader (https://github.com/Erkaman/vulkan_minimal_compute)
 depth buffer formats?
 more vertex attribute types
 refine implicit external dependencies in render_pass?
-switch to gpu-alloc?
+switch allocator? (https://docs.rs/gpu-allocator/0.9.0/gpu_allocator/) (https://docs.rs/gpu-alloc/0.5.1/gpu_alloc/)
 
 STUFF
 

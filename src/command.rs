@@ -26,8 +26,8 @@ impl CommandPool
 
 pub enum DrawMode<'a>
 {
-    Index(IndexBinding<'a>, u32),
-    Vertex(u32)
+    Index { binding: IndexBinding<'a>, offset: u32, count: u32 },
+    Vertex { offset: u32, count: u32 }
 }
 
 impl<'a> CommandBuffer<'a>
@@ -149,6 +149,18 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
     }
 
     #[inline]
+    pub fn set_view(&mut self, view_info: &ViewInfo) -> &mut Self
+    {
+        let (viewport, scissor) = view_info.build();
+        unsafe
+        {
+            self.record.buffer.pool.device.logical_device.cmd_set_viewport(self.record.buffer.command_buffer, 0, &[viewport]);
+            self.record.buffer.pool.device.logical_device.cmd_set_scissor(self.record.buffer.command_buffer, 0, &[scissor]);
+        }
+        self
+    }
+
+    #[inline]
     pub fn bind_attributes<const N: usize>(&mut self, attributes: [&AttributeBinding; N]) -> &mut Self
     {
         let (mut buffers, mut offsets_in_bytes) = ([Default::default(); N], [Default::default(); N]);
@@ -183,18 +195,31 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
     }
 
     #[inline]
+    pub fn push_constant<T>(&mut self, pipeline_layout: &PipelineLayout, push_constant: &T) -> &mut Self
+    {
+        let (shader_stages, size) = pipeline_layout.push_constant.expect("CommandBufferRecordRenderPass::push_constant: This layout has no push constant.");
+        if DEBUG_MODE && std::mem::size_of::<T>() as u32 != size { panic!("CommandBufferRecordRenderPass::push_constant: Incompatible data size."); }
+        unsafe
+        {
+            let data = std::slice::from_raw_parts(push_constant as *const T as *const u8, std::mem::size_of::<T>());
+            self.record.buffer.pool.device.logical_device.cmd_push_constants(self.record.buffer.command_buffer, pipeline_layout.layout, shader_stages, 0, data);
+        }
+        self
+    }
+
+    #[inline]
     pub fn draw(&mut self, draw_mode: &DrawMode, instance_count: u32) -> &mut Self
     {
         match draw_mode
         {
-            DrawMode::Index(binding, count) => unsafe
+            DrawMode::Index { binding, offset, count } => unsafe
             {
                 self.record.buffer.pool.device.logical_device.cmd_bind_index_buffer(self.record.buffer.command_buffer, binding.buffer.buffer, binding.offset_in_bytes, binding.format);
-                self.record.buffer.pool.device.logical_device.cmd_draw_indexed(self.record.buffer.command_buffer, *count, instance_count, 0, 0, 0);
+                self.record.buffer.pool.device.logical_device.cmd_draw_indexed(self.record.buffer.command_buffer, *count, instance_count, *offset, 0, 0);
             },
-            DrawMode::Vertex(count) => unsafe
+            DrawMode::Vertex { offset, count } => unsafe
             {
-                self.record.buffer.pool.device.logical_device.cmd_draw(self.record.buffer.command_buffer, *count, instance_count, 0, 0);
+                self.record.buffer.pool.device.logical_device.cmd_draw(self.record.buffer.command_buffer, *count, instance_count, *offset, 0);
             }
         };
         self

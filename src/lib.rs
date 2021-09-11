@@ -130,10 +130,9 @@ pub struct AttributeLocation(pub u32);
 
 pub enum AttributeType
 {
-    F1,
-    F2,
-    F3,
-    F4
+    F1, F2, F3, F4,
+    I1, I2, I3, I4,
+    U1, U2, U3, U4
 }
 
 pub trait AttributeGroupReprCpacked
@@ -321,7 +320,17 @@ pub struct RenderPass
 pub struct PipelineLayout
 {
     device: Arc<RawDevice>,
-    layout: vk::PipelineLayout
+    layout: vk::PipelineLayout,
+    push_constant: Option<(vk::ShaderStageFlags, u32)>
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub struct ViewInfo
+{
+    pub viewport_origin: (f32, f32),
+    pub viewport_size: (f32, f32),
+    pub scissor_origin: (i32, i32),
+    pub scissor_size: (u32, u32)
 }
 
 pub struct Pipeline
