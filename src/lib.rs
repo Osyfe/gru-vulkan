@@ -213,7 +213,7 @@ pub struct ImageType
     pub layers: Option<u32>
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Msaa
 {
