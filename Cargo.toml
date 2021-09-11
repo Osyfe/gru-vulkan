@@ -5,7 +5,7 @@ members = ["gru-vulkan-derive"]
 name = "gru-vulkan"
 version = "0.1.0"
 authors = ["Jannik Fehre"]
-edition = "2018"
+edition = "2021"
 
 [features]
 math = ["gru-misc/math"]

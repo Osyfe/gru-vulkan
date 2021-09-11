@@ -47,10 +47,10 @@ impl<'a> CommandBuffer<'a>
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::submit: Wrong queue family."); }
         let submit_info =
         [   vk::SubmitInfo::builder()
-            .wait_semaphores(&[wait.semaphore])
+            .wait_semaphores(std::slice::from_ref(&wait.semaphore))
             .wait_dst_stage_mask(&[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT])
-            .command_buffers(&[self.command_buffer])
-            .signal_semaphores(&[signal.semaphore])
+            .command_buffers(std::slice::from_ref(&self.command_buffer))
+            .signal_semaphores(std::slice::from_ref(&signal.semaphore))
             .build()
         ];
         unsafe { self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence) }.unwrap();
