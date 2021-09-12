@@ -24,10 +24,33 @@ impl CommandPool
     }
 }
 
-pub enum DrawMode<'a>
+pub enum DrawMode
 {
-    Index { binding: IndexBinding<'a>, offset: u32, count: u32 },
-    Vertex { offset: u32, count: u32 }
+    Index { index_count: u32, instance_count: u32, first_index: u32, vertex_offset: i32, first_instance: u32 },
+    Vertex { vertex_count: u32, instance_count: u32, first_vertex: u32, first_instance: u32 }
+}
+
+impl DrawMode
+{
+    pub fn index(index_count: u32) -> Self
+    {
+        Self::Index { index_count, instance_count: 1, first_index: 0, vertex_offset: 0, first_instance: 0 }
+    }
+
+    pub fn index_instanced(index_count: u32, instance_count: u32) -> Self
+    {
+        Self::Index { index_count, instance_count, first_index: 0, vertex_offset: 0, first_instance: 0 }
+    }
+
+    pub fn vertex(vertex_count: u32) -> Self
+    {
+        Self::Vertex { vertex_count, instance_count: 1, first_vertex: 0, first_instance: 0 }
+    }
+
+    pub fn vertex_instanced(vertex_count: u32, instance_count: u32) -> Self
+    {
+        Self::Vertex { vertex_count, instance_count, first_vertex: 0, first_instance: 0 }
+    }
 }
 
 impl<'a> CommandBuffer<'a>
@@ -161,6 +184,13 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
     }
 
     #[inline]
+    pub fn bind_indices(&mut self, indices: &IndexBinding) -> &mut Self
+    {
+        unsafe { self.record.buffer.pool.device.logical_device.cmd_bind_index_buffer(self.record.buffer.command_buffer, indices.buffer.buffer, indices.offset_in_bytes, indices.format); }
+        self
+    }
+
+    #[inline]
     pub fn bind_attributes<const N: usize>(&mut self, attributes: [&AttributeBinding; N]) -> &mut Self
     {
         let (mut buffers, mut offsets_in_bytes) = ([Default::default(); N], [Default::default(); N]);
@@ -208,18 +238,17 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
     }
 
     #[inline]
-    pub fn draw(&mut self, draw_mode: &DrawMode, instance_count: u32) -> &mut Self
+    pub fn draw(&mut self, draw_mode: &DrawMode) -> &mut Self
     {
         match draw_mode
         {
-            DrawMode::Index { binding, offset, count } => unsafe
+            DrawMode::Index { index_count, instance_count, first_index, vertex_offset, first_instance } => unsafe
             {
-                self.record.buffer.pool.device.logical_device.cmd_bind_index_buffer(self.record.buffer.command_buffer, binding.buffer.buffer, binding.offset_in_bytes, binding.format);
-                self.record.buffer.pool.device.logical_device.cmd_draw_indexed(self.record.buffer.command_buffer, *count, instance_count, *offset, 0, 0);
+                self.record.buffer.pool.device.logical_device.cmd_draw_indexed(self.record.buffer.command_buffer, *index_count, *instance_count, *first_index, *vertex_offset, *first_instance);
             },
-            DrawMode::Vertex { offset, count } => unsafe
+            DrawMode::Vertex { vertex_count, instance_count, first_vertex, first_instance } => unsafe
             {
-                self.record.buffer.pool.device.logical_device.cmd_draw(self.record.buffer.command_buffer, *count, instance_count, *offset, 0);
+                self.record.buffer.pool.device.logical_device.cmd_draw(self.record.buffer.command_buffer, *vertex_count, *instance_count, *first_vertex, *first_instance);
             }
         };
         self
