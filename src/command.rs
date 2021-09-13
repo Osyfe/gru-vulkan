@@ -191,7 +191,7 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
     }
 
     #[inline]
-    pub fn bind_attributes<const N: usize>(&mut self, attributes: [&AttributeBinding; N]) -> &mut Self
+    pub fn bind_attributes<const N: usize>(&mut self, first_binding: u32, attributes: [&AttributeBinding; N]) -> &mut Self
     {
         let (mut buffers, mut offsets_in_bytes) = ([Default::default(); N], [Default::default(); N]);
         for (i, binding) in attributes.iter().enumerate()
@@ -199,7 +199,7 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
             buffers[i] = binding.buffer.buffer;
             offsets_in_bytes[i] = binding.offset_in_bytes;
         }
-        unsafe { self.record.buffer.pool.device.logical_device.cmd_bind_vertex_buffers(self.record.buffer.command_buffer, 0, &buffers, &offsets_in_bytes); }
+        unsafe { self.record.buffer.pool.device.logical_device.cmd_bind_vertex_buffers(self.record.buffer.command_buffer, first_binding, &buffers, &offsets_in_bytes); }
         self
     }
 
