@@ -19,7 +19,7 @@ impl Drop for RawDevice
     {
         unsafe
         {
-            self.allocator.destroy();
+            std::mem::drop(self.allocator.take());
             self.logical_device.destroy_device(None);
         }
     }
@@ -41,7 +41,8 @@ impl Drop for Buffer
 {
     fn drop(&mut self)
     {
-        self.device.allocator.destroy_buffer(self.buffer, &self.allocation);
+        unsafe { self.device.logical_device.destroy_buffer(self.buffer, None); }
+        self.device.allocator.as_ref().unwrap().lock().unwrap().free(self.allocation.take().unwrap()).unwrap();
     }
 }
 
@@ -52,8 +53,9 @@ impl Drop for Image
         unsafe
         {
             self.device.logical_device.destroy_image_view(self.image_view, None);
+            self.device.logical_device.destroy_image(self.image, None);
         }
-        self.device.allocator.destroy_image(self.image, &self.allocation);
+        self.device.allocator.as_ref().unwrap().lock().unwrap().free(self.allocation.take().unwrap()).unwrap();
     }
 }
 
@@ -61,7 +63,8 @@ impl Drop for ImageBuffer
 {
     fn drop(&mut self)
     {
-        self.device.allocator.destroy_buffer(self.buffer, &self.allocation);
+        unsafe { self.device.logical_device.destroy_buffer(self.buffer, None); }
+        self.device.allocator.as_ref().unwrap().lock().unwrap().free(self.allocation.take().unwrap()).unwrap();
     }
 }
 

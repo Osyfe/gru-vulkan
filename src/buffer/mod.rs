@@ -23,33 +23,33 @@ impl Device
 
     pub fn new_buffer(&self, buffer_type: &mut BufferType, buffer_usage: BufferUsage) -> Buffer
     {
-        //if DEBUG_MODE && buffer_layout.offset_in_bytes == 0 { panic!("Device::new_buffer: No empty buffers allowed."); }
+        if DEBUG_MODE && buffer_type.offset_in_bytes == 0 { panic!("Device::new_buffer: No empty buffers allowed."); }
         buffer_type.sealed = true;
-        let (memory_usage_flags, mut buffer_usage_flags) = match buffer_usage
+        let (location, mut buffer_usage_flags) = match buffer_usage
         {
-            BufferUsage::Stage => (vk_mem::MemoryUsage::CpuOnly, vk::BufferUsageFlags::TRANSFER_SRC),
-            BufferUsage::Dynamic => (vk_mem::MemoryUsage::CpuToGpu, vk::BufferUsageFlags::empty()),
-            BufferUsage::Static => (vk_mem::MemoryUsage::GpuOnly, vk::BufferUsageFlags::TRANSFER_DST)
+            BufferUsage::Stage => (gpu_allocator::MemoryLocation::CpuToGpu, vk::BufferUsageFlags::TRANSFER_SRC),
+            BufferUsage::Dynamic => (gpu_allocator::MemoryLocation::CpuToGpu, vk::BufferUsageFlags::empty()),
+            BufferUsage::Static => (gpu_allocator::MemoryLocation::GpuOnly, vk::BufferUsageFlags::TRANSFER_DST)
         };
         buffer_usage_flags |=
             if buffer_type.indices { vk::BufferUsageFlags::INDEX_BUFFER } else { vk::BufferUsageFlags::empty() }
           | if buffer_type.attributes { vk::BufferUsageFlags::VERTEX_BUFFER } else { vk::BufferUsageFlags::empty() }
           | if buffer_type.uniforms { vk::BufferUsageFlags::UNIFORM_BUFFER } else { vk::BufferUsageFlags::empty() };
-        let allocation_create_info = vk_mem::AllocationCreateInfo { usage: memory_usage_flags, ..Default::default() };
+        let buffer_create_info = vk::BufferCreateInfo::builder()
+            .size(buffer_type.offset_in_bytes)
+            .usage(buffer_usage_flags);
+
+        let device = &self.0.logical_device;
+        let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }.unwrap();
+        let requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
+        let allocation_create_desc = alloc::AllocationCreateDesc { name: "", requirements, location, linear: true };
+        let allocation = self.0.allocator.as_ref().unwrap().lock().unwrap().allocate(&allocation_create_desc).unwrap();
+        unsafe { device.bind_buffer_memory(buffer, allocation.memory(), allocation.offset()).unwrap(); }
         
-        let (buffer, allocation, allocation_info) = self.0.allocator.create_buffer
-        (
-            &ash::vk::BufferCreateInfo::builder()
-                .size(buffer_type.offset_in_bytes)
-                .usage(buffer_usage_flags)
-                .build(),
-            &allocation_create_info,
-        ).unwrap();
         Buffer
         {
             device: self.0.clone(),
-            allocation,
-            _allocation_info: allocation_info,
+            allocation: Some(allocation),
             buffer,
             buffer_usage,
             layout_id: buffer_type.id,
@@ -81,25 +81,25 @@ impl<T> BufferView<T>
 
 impl BufferType
 {
-    pub fn add_indices<T: IndexType>(&mut self, count: usize) -> BufferView<T>
+    pub fn add_indices<T: IndexType>(&mut self, count: u32) -> BufferView<T>
     {
         self.indices = true;
         self.add(count, std::mem::size_of::<T>() as u64)
     }
 
-    pub fn add_attributes<T: AttributeGroupReprCpacked>(&mut self, count: usize) -> BufferView<T>
+    pub fn add_attributes<T: AttributeGroupReprCpacked>(&mut self, count: u32) -> BufferView<T>
     {
         self.attributes = true;
         self.add(count, 1)
     }
 
-    pub fn add_uniforms<T: DescriptorStructReprC>(&mut self, count: usize) -> BufferView<T>
+    pub fn add_uniforms<T: DescriptorStructReprC>(&mut self, count: u32) -> BufferView<T>
     {
         self.uniforms = true;
         self.add(count, self.uniform_align)
     }
 
-    fn add<T>(&mut self, count: usize, align: u64) -> BufferView<T>
+    fn add<T>(&mut self, count: u32, align: u64) -> BufferView<T>
     {
         if DEBUG_MODE && self.sealed { panic!("BufferLayout::add: Type is sealed after buffer creation."); }
         //if count == 0 { panic!("BufferLayout::add: No empty data permitted."); }
@@ -112,7 +112,7 @@ impl BufferType
         {
             layout_id: self.id,
             offset_in_bytes: begin_offset_in_bytes as usize,
-            count: count as u32,
+            count,
             stride: stride as u32,
             phantom: PhantomData
         }
@@ -126,14 +126,14 @@ pub enum BufferUsage
     Dynamic,
     Static
 }
-
+//gpu_allocator does persistent mapping, but we keep this BufferMap API around for a potential swap to gpu_alloc
 impl Buffer
 {
     #[inline]
     pub fn map(&mut self) -> BufferMap
     {
         if DEBUG_MODE { if self.buffer_usage == BufferUsage::Static { panic!("Buffer::map: Static buffers cannot be mapped.") } }
-        let buffer_ptr = self.device.allocator.map_memory(&self.allocation).unwrap();
+        let buffer_ptr = self.allocation.as_ref().unwrap().mapped_ptr().unwrap().as_ptr();
         BufferMap
         {
             buffer: self,
@@ -145,7 +145,7 @@ impl Buffer
 pub struct BufferMap<'a>
 {
     buffer: &'a mut Buffer,
-    buffer_ptr: *mut u8,
+    buffer_ptr: *mut std::ffi::c_void,
 }
 
 impl<'a> BufferMap<'a>
@@ -193,14 +193,15 @@ impl<'a> BufferMap<'a>
     }
 }
 
+/* Unmap Buffer here if not persistent mapped.
 impl Drop for BufferMap<'_>
 {
     #[inline]
     fn drop(&mut self)
     {
-        self.buffer.device.allocator.unmap_memory(&self.buffer.allocation);
     }
 }
+ */
 
 impl<'a> CommandBuffer<'a>
 {

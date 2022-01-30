@@ -24,12 +24,14 @@ impl Device
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .samples(image_usage.vk_sample_count())
             .usage(image_usage.vk_image_usage_flags());
-        let allocation_create_info = vk_mem::AllocationCreateInfo
-        {
-            usage: vk_mem::MemoryUsage::GpuOnly,
-            ..Default::default()
-        };
-        let (vk_image, allocation, allocation_info) = self.0.allocator.create_image(&image_create_info, &allocation_create_info).unwrap();
+
+        let device = &self.0.logical_device;
+        let vk_image = unsafe { device.create_image(&image_create_info, None) }.unwrap();
+        let requirements = unsafe { device.get_image_memory_requirements(vk_image) };
+        let allocation_create_desc = alloc::AllocationCreateDesc { name: "", requirements, location: gpu_allocator::MemoryLocation::GpuOnly, linear: false };
+        let allocation = self.0.allocator.as_ref().unwrap().lock().unwrap().allocate(&allocation_create_desc).unwrap();
+        unsafe { device.bind_image_memory(vk_image, allocation.memory(), allocation.offset()).unwrap(); }
+
         let image_view_create_info = vk::ImageViewCreateInfo::builder()
             .image(vk_image)
             .view_type(if image_type.layers.is_some() { vk::ImageViewType::TYPE_2D_ARRAY } else { vk::ImageViewType::TYPE_2D })
@@ -42,11 +44,11 @@ impl Device
                 ..Default::default()
             });
         let image_view = unsafe { self.0.logical_device.create_image_view(&image_view_create_info, None) }.unwrap();
+
         Image
         {
             device: self.0.clone(),
-            allocation,
-            _allocation_info: allocation_info,
+            allocation: Some(allocation),
             image: vk_image,
             image_view,
             image_type,
@@ -57,21 +59,20 @@ impl Device
 
     pub fn new_image_buffer(&self, image_type: ImageType) -> ImageBuffer
     {
-        let memory_usage_flags = vk_mem::MemoryUsage::CpuOnly;
-        let allocation_create_info = vk_mem::AllocationCreateInfo { usage: memory_usage_flags, ..Default::default() };
-        let (buffer, allocation, allocation_info) = self.0.allocator.create_buffer
-        (
-            &ash::vk::BufferCreateInfo::builder()
-                .size(image_type.layer_size_in_bytes())
-                .usage(vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST)
-                .build(),
-            &allocation_create_info,
-        ).unwrap();
+        let buffer_create_info = vk::BufferCreateInfo::builder()
+            .size(image_type.layer_size_in_bytes())
+            .usage(vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST);
+        let device = &self.0.logical_device;
+        let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }.unwrap();
+        let requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
+        let allocation_create_desc = alloc::AllocationCreateDesc { name: "", requirements, location: gpu_allocator::MemoryLocation::CpuToGpu, linear: true };
+        let allocation = self.0.allocator.as_ref().unwrap().lock().unwrap().allocate(&allocation_create_desc).unwrap();
+        unsafe { device.bind_buffer_memory(buffer, allocation.memory(), allocation.offset()).unwrap(); }
+
         ImageBuffer
         {
             device: self.0.clone(),
-            allocation,
-            _allocation_info: allocation_info,
+            allocation: Some(allocation),
             buffer,
             image_type
         }
@@ -108,17 +109,15 @@ impl ImageBuffer
 	pub fn write(&mut self, data: &[u8])
 	{
 		if data.len() as u64 != self.image_type.layer_size_in_bytes() { panic!("ImageBuffer::write: Incompatible buffer size."); }
-		let buffer_ptr = self.device.allocator.map_memory(&self.allocation).unwrap();
+		let buffer_ptr = self.allocation.as_ref().unwrap().mapped_ptr().unwrap().as_ptr() as *mut u8;
         unsafe { buffer_ptr.copy_from_nonoverlapping(data.as_ptr(), data.len()); }
-        self.device.allocator.unmap_memory(&self.allocation);
 	}
 
-    pub fn read(&mut self, data: &mut [u8])
+    pub fn read(&self, data: &mut [u8])
     {
         if data.len() as u64 != self.image_type.layer_size_in_bytes() { panic!("ImageBuffer::write: Incompatible buffer size."); }
-        let buffer_ptr = self.device.allocator.map_memory(&self.allocation).unwrap();
-        unsafe { data.as_mut_ptr().copy_from_nonoverlapping(buffer_ptr, data.len()); }
-        self.device.allocator.unmap_memory(&self.allocation);
+        let buffer_ptr = self.allocation.as_ref().unwrap().mapped_ptr().unwrap().as_ptr() as *const u8;
+        unsafe { buffer_ptr.copy_to_nonoverlapping(data.as_mut_ptr(), data.len()); }
     }
 }
 

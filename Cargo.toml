@@ -15,7 +15,7 @@ gru-vulkan-derive = { path = "gru-vulkan-derive" }
 ash = "0.33.0"
 ash-window = "0.7.0"
 raw-window-handle = "0.3.3"
-inline-spirv = "0.1.2"
-vk-mem = { git = "https://github.com/aclysma/vk-mem-rs.git", branch = "ash-0.33-build-fix" }
+inline-spirv = { version = "0.1.4", default-features = false, features = ["glsl"] }
+gpu-allocator = { version = "0.10.0", default-features = false, features = ["vulkan"] }
 gru-misc = { path = "../gru-misc", optional = true }
 serde = { version = "1.0.129", default-features = false, features = ["derive"], optional = true }

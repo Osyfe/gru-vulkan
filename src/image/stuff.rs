@@ -19,17 +19,19 @@ impl ImageChannelType
 	{
 		match self
 		{
-			ImageChannelType::BgraSrgb => 4,
-            ImageChannelType::BgraSnorm => 4,
-            ImageChannelType::BgraUnorm => 4,
-            ImageChannelType::BgraSint => 4,
-            ImageChannelType::BgraUint => 4,
-            ImageChannelType::RSrgb => 1,
-            ImageChannelType::RSnorm => 1,
-            ImageChannelType::RUnorm => 1,
-            ImageChannelType::RSint => 1,
-            ImageChannelType::RUint => 1,
-            ImageChannelType::DSfloat => 4
+			Self::BgraSrgb => 4,
+            Self::BgraSnorm => 4,
+            Self::BgraUnorm => 4,
+            Self::BgraSint => 4,
+            Self::BgraUint => 4,
+            Self::RSrgb => 1,
+            Self::RSnorm => 1,
+            Self::RUnorm => 1,
+            Self::RSint => 1,
+            Self::RUint => 1,
+            Self::R32Uint => 4,
+            Self::RSfloat => 4,
+            Self::DSfloat => 4
 		}
 	}
 
@@ -37,17 +39,19 @@ impl ImageChannelType
     {
         match self
         {
-            ImageChannelType::BgraSrgb => vk::Format::B8G8R8A8_SRGB,
-            ImageChannelType::BgraSnorm => vk::Format::B8G8R8A8_SNORM,
-            ImageChannelType::BgraUnorm => vk::Format::B8G8R8A8_UNORM,
-            ImageChannelType::BgraSint => vk::Format::B8G8R8A8_SINT,
-            ImageChannelType::BgraUint => vk::Format::B8G8R8A8_UINT,
-            ImageChannelType::RSrgb => vk::Format::R8_SRGB,
-            ImageChannelType::RSnorm => vk::Format::R8_SNORM,
-            ImageChannelType::RUnorm => vk::Format::R8_UNORM,
-            ImageChannelType::RSint => vk::Format::R8_SINT,
-            ImageChannelType::RUint => vk::Format::R8_UINT,
-            ImageChannelType::DSfloat => vk::Format::D32_SFLOAT
+            Self::BgraSrgb => vk::Format::B8G8R8A8_SRGB,
+            Self::BgraSnorm => vk::Format::B8G8R8A8_SNORM,
+            Self::BgraUnorm => vk::Format::B8G8R8A8_UNORM,
+            Self::BgraSint => vk::Format::B8G8R8A8_SINT,
+            Self::BgraUint => vk::Format::B8G8R8A8_UINT,
+            Self::RSrgb => vk::Format::R8_SRGB,
+            Self::RSnorm => vk::Format::R8_SNORM,
+            Self::RUnorm => vk::Format::R8_UNORM,
+            Self::RSint => vk::Format::R8_SINT,
+            Self::RUint => vk::Format::R8_UINT,
+            Self::R32Uint => vk::Format::R32_UINT,
+            Self::RSfloat => vk::Format::R32_SFLOAT,
+            Self::DSfloat => vk::Format::D32_SFLOAT
         }
     }
 
@@ -98,10 +102,12 @@ impl ImageUsage
                 let flags = vk::ImageUsageFlags::TRANSFER_DST | vk::ImageUsageFlags::SAMPLED;
                 if *mipmapping { flags | vk::ImageUsageFlags::TRANSFER_SRC } else { flags }
             },
-            ImageUsage::Attachment { depth, texture, .. } =>
+            ImageUsage::Attachment { depth, texture, transfer_src, .. } =>
             {
-                let flags = if *depth { vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT } else { vk::ImageUsageFlags::COLOR_ATTACHMENT };
-                if *texture { flags | vk::ImageUsageFlags::SAMPLED } else { flags | vk::ImageUsageFlags::INPUT_ATTACHMENT }
+                let flags =
+                    if *depth { vk::ImageUsageFlags::DEPTH_STENCIL_ATTACHMENT } else { vk::ImageUsageFlags::COLOR_ATTACHMENT }
+                  | if *texture { vk::ImageUsageFlags::SAMPLED } else { vk::ImageUsageFlags::INPUT_ATTACHMENT };
+                if *transfer_src { flags | vk::ImageUsageFlags::TRANSFER_SRC } else { flags }
             }
         }
     }

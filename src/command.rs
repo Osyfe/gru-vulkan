@@ -65,17 +65,18 @@ impl<'a> CommandBuffer<'a>
     }
 
     #[inline]
-    pub fn submit(&self, queue: &Queue, wait: &Semaphore, signal: &Semaphore, mark: &Fence)
+    pub fn submit(&self, queue: &Queue, wait: Option<&Semaphore>, signal: Option<&Semaphore>, mark: &Fence)
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::submit: Wrong queue family."); }
-        let submit_info =
-        [   vk::SubmitInfo::builder()
-            .wait_semaphores(std::slice::from_ref(&wait.semaphore))
-            .wait_dst_stage_mask(&[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT])
-            .command_buffers(std::slice::from_ref(&self.command_buffer))
-            .signal_semaphores(std::slice::from_ref(&signal.semaphore))
-            .build()
-        ];
+        let mut submit_info = vk::SubmitInfo::builder().command_buffers(std::slice::from_ref(&self.command_buffer));
+        if let Some(wait) = wait
+        {
+            submit_info = submit_info
+                .wait_semaphores(std::slice::from_ref(&wait.semaphore))
+                .wait_dst_stage_mask(&[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT]);
+        }
+        if let Some(signal) = signal { submit_info = submit_info.signal_semaphores(std::slice::from_ref(&signal.semaphore)); }
+        let submit_info = [submit_info.build()];
         unsafe { self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence) }.unwrap();
     }
 }

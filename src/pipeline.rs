@@ -10,8 +10,8 @@ macro_rules! vert_shader
 {
     ($path:expr) =>
     {
-        if gru_vulkan::DEBUG_MODE { include_spirv!($path, glsl, vert) }
-        else { include_spirv!($path, glsl, vert, max_perf, no_debug) }
+        if gru_vulkan::DEBUG_MODE { include_spirv!($path, glsl, vert, vulkan1_0) }
+        else { include_spirv!($path, glsl, vert, max_perf, no_debug, vulkan1_0) }
     }
 }
 
@@ -20,8 +20,8 @@ macro_rules! frag_shader
 {
     ($path:expr) =>
     {
-        if gru_vulkan::DEBUG_MODE { include_spirv!($path, glsl, frag) }
-        else { include_spirv!($path, glsl, frag, max_perf, no_debug) }
+        if gru_vulkan::DEBUG_MODE { include_spirv!($path, glsl, frag, vulkan1_0) }
+        else { include_spirv!($path, glsl, frag, max_perf, no_debug, vulkan1_0) }
     }
 }
 
@@ -103,8 +103,8 @@ impl Device
                 stride: offset,
                 input_rate: match group.rate
                 {
-                    InputRate::VERTEX => vk::VertexInputRate::VERTEX,
-                    InputRate::INSTANCE => vk::VertexInputRate::INSTANCE
+                    InputRate::Vertex => vk::VertexInputRate::VERTEX,
+                    InputRate::Instance => vk::VertexInputRate::INSTANCE
                 }
             });
         }

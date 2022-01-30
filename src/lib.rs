@@ -25,8 +25,8 @@ pub use command::*;
 
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use ash_window;
 use ash::{self, vk, extensions::ext::DebugUtils};
+use gpu_allocator::vulkan as alloc;
 
 pub use gru_vulkan_derive::{VertexAttributeGroupReprCpacked, InstanceAttributeGroupReprCpacked, DescriptorStructReprC};
 pub use inline_spirv::include_spirv;
@@ -83,7 +83,7 @@ struct RawDevice
     instance: Instance,
     physical_device: vk::PhysicalDevice,
     logical_device: ash::Device,
-    allocator: vk_mem::Allocator,
+    allocator: Option<Mutex<alloc::Allocator>>,
     queue_families: Vec<QueueFamily>,
     buffer_layout_count: std::sync::atomic::AtomicU32
 }
@@ -121,8 +121,8 @@ pub trait IndexType
 
 pub enum InputRate
 {
-    VERTEX,
-    INSTANCE
+    Vertex,
+    Instance
 }
 
 #[repr(transparent)]
@@ -170,8 +170,7 @@ pub struct BufferView<T>
 pub struct Buffer
 {
     device: Arc<RawDevice>,
-    allocation: vk_mem::Allocation,
-    _allocation_info: vk_mem::AllocationInfo,
+    allocation: Option<alloc::Allocation>,
     buffer: vk::Buffer,
     buffer_usage: BufferUsage,
     layout_id: u32,
@@ -201,6 +200,8 @@ pub enum ImageChannelType
     RUnorm,
     RSint,
     RUint,
+    R32Uint,
+    RSfloat,
     DSfloat
 }
 
@@ -232,8 +233,7 @@ pub enum ImageUsage
 pub struct Image
 {
     device: Arc<RawDevice>,
-    allocation: vk_mem::Allocation,
-    _allocation_info: vk_mem::AllocationInfo,
+    allocation: Option<alloc::Allocation>,
     image: vk::Image,
     image_view: vk::ImageView,
     image_type: ImageType,
@@ -244,8 +244,7 @@ pub struct Image
 pub struct ImageBuffer
 {
     device: Arc<RawDevice>,
-    allocation: vk_mem::Allocation,
-    _allocation_info: vk_mem::AllocationInfo,
+    allocation: Option<alloc::Allocation>,
     buffer: vk::Buffer,
     image_type: ImageType
 }

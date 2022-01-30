@@ -52,13 +52,13 @@ fn attribute_group_derive(input: TokenStream, rate: proc_macro2::TokenStream) ->
 #[proc_macro_derive(VertexAttributeGroupReprCpacked, attributes(location))]
 pub fn vertex_attribute_group_derive(input: TokenStream) -> TokenStream
 {
-    attribute_group_derive(input, quote::quote!(VERTEX))
+    attribute_group_derive(input, quote::quote!(Vertex))
 }
 
 #[proc_macro_derive(InstanceAttributeGroupReprCpacked, attributes(location))]
 pub fn instance_attribute_group_derive(input: TokenStream) -> TokenStream
 {
-    attribute_group_derive(input, quote::quote!(INSTANCE))
+    attribute_group_derive(input, quote::quote!(Instance))
 }
 
 #[proc_macro_derive(DescriptorStructReprC)]

@@ -147,7 +147,7 @@ impl Instance
                 .queue_priorities(&priorities)
                 .build()
         }).collect::<Vec<vk::DeviceQueueCreateInfo>>()[..];        
-        let device_extension_name_pointers: Vec<*const c_char> = vec![ash::extensions::khr::Swapchain::name().as_ptr()];     
+        let device_extension_name_pointers: Vec<*const c_char> = if self.surface.is_some() { vec![ash::extensions::khr::Swapchain::name().as_ptr()] } else { vec![] };     
         let (_layer_names, layer_name_pointers) = layer_name_pointers();
         let features = unsafe { self.instance.get_physical_device_features(*physical_device) };
         if features.sampler_anisotropy != 1 { println!("sampler_anisotropy not supported!"); }
@@ -180,25 +180,22 @@ impl Instance
             QueueFamily { index, queues, flags, surface_support }
         }).collect();
 
-        let allocator_create_info = vk_mem::AllocatorCreateInfo
+        let allocator_create_desc = alloc::AllocatorCreateDesc
         {
-            physical_device: *physical_device,
-            device: logical_device.clone(),
             instance: self.instance.clone(),
-            //TODO vk_mem 0.2.3 tries to fix the default bug
-            flags: vk_mem::AllocatorCreateFlags::NONE,
-            preferred_large_heap_block_size: 0,
-            frame_in_use_count: 0,
-            heap_size_limits: None
+            device: logical_device.clone(),
+            physical_device: *physical_device,
+            debug_settings: gpu_allocator::AllocatorDebugSettings::default(),
+            buffer_device_address: false
         };
-        let allocator = vk_mem::Allocator::new(&allocator_create_info).unwrap();
+        let allocator = alloc::Allocator::new(&allocator_create_desc).unwrap();
 
         Device(Arc::new(RawDevice
         {
             instance: self,
             physical_device: *physical_device,
             logical_device,
-            allocator,
+            allocator: Some(Mutex::new(allocator)),
             queue_families,
             buffer_layout_count: std::sync::atomic::AtomicU32::new(0)
         }))
