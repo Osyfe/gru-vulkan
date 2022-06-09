@@ -19,7 +19,7 @@ fn layer_name_pointers() -> (Vec<std::ffi::CString>, Vec<*const c_char>)
 fn extension_name_pointers(window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> Vec<*const c_char>
 {
     let mut extension_name_pointers = vec![];
-    if let Some(window) = window { ash_window::enumerate_required_extensions(window).unwrap().iter().for_each(|extension| extension_name_pointers.push(extension.as_ptr())); }
+    if let Some(window) = window { ash_window::enumerate_required_extensions(window).unwrap().iter().for_each(|extension| extension_name_pointers.push(*extension)); }
     if DEBUG_MODE { extension_name_pointers.push(ash::extensions::ext::DebugUtils::name().as_ptr()); }
     extension_name_pointers
 }
@@ -49,7 +49,7 @@ impl Instance
 {
     pub fn new(window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> Self
     {
-        let entry = unsafe { ash::Entry::new() }.unwrap();
+        let entry = ash::Entry::linked();
        
         let enginename = std::ffi::CString::new("gru-vulkan").unwrap();
         let app_name = std::ffi::CString::new("osyfe app").unwrap();

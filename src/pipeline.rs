@@ -10,7 +10,7 @@ macro_rules! vert_shader
 {
     ($path:expr) =>
     {
-        if gru_vulkan::DEBUG_MODE { include_spirv!($path, glsl, vert, vulkan1_0) }
+        if cfg!(debug_assertions) { include_spirv!($path, glsl, vert, vulkan1_0) }
         else { include_spirv!($path, glsl, vert, max_perf, no_debug, vulkan1_0) }
     }
 }
@@ -20,7 +20,7 @@ macro_rules! frag_shader
 {
     ($path:expr) =>
     {
-        if gru_vulkan::DEBUG_MODE { include_spirv!($path, glsl, frag, vulkan1_0) }
+        if cfg!(debug_assertions) { include_spirv!($path, glsl, frag, vulkan1_0) }
         else { include_spirv!($path, glsl, frag, max_perf, no_debug, vulkan1_0) }
     }
 }

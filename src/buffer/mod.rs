@@ -233,14 +233,14 @@ impl<'a> CommandBuffer<'a>
             self.pool.device.logical_device.end_command_buffer(self.command_buffer).unwrap();
             self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence).unwrap();
         }
-        CopyBufferFence { mark, _command_buffer: self, _src: src, _dst: dst }
+        CopyBufferFence { mark, command_buffer: self, _src: src, _dst: dst }
     }
 }
 
 pub struct CopyBufferFence<'a, 'b, 'c>
 {
     pub mark: Fence,
-    _command_buffer: CommandBuffer<'a>,
+    pub command_buffer: CommandBuffer<'a>,
     _src: &'b Buffer,
     _dst: &'c Buffer
 }

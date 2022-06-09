@@ -1,7 +1,7 @@
 #[cfg(feature = "serde")]
 use serde::{Serialize, Deserialize};
 
-pub const DEBUG_MODE: bool = cfg!(debug_assertions);
+const DEBUG_MODE: bool = cfg!(debug_assertions);
 
 mod drop;
 mod instance;

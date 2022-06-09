@@ -193,6 +193,18 @@ impl<T> SwapchainCycle<T>
     {
         &mut self.objects[swapchain.cycle_index.get()]
     }
+	
+	#[inline]
+    pub fn get_previous(&self, swapchain: &Swapchain) -> &T
+    {
+        &self.objects[(swapchain.cycle_index.get() + swapchain.count - 1) % swapchain.count]
+    }
+
+    #[inline]
+    pub fn get_previous_mut(&mut self, swapchain: &Swapchain) -> &mut T
+    {
+        &mut self.objects[(swapchain.cycle_index.get() + swapchain.count - 1) % swapchain.count]
+    }
 
     #[inline]
     pub fn iter(&self) -> std::slice::Iter<T>
