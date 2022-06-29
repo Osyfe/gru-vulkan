@@ -220,7 +220,8 @@ pub enum Msaa
 {
     None,
     X2,
-    X4
+    X4,
+    X8
 }
 
 #[derive(Clone, Copy)]

@@ -86,7 +86,8 @@ impl Msaa
         {
             Msaa::None => vk::SampleCountFlags::TYPE_1,
             Msaa::X2 => vk::SampleCountFlags::TYPE_2,
-            Msaa::X4 => vk::SampleCountFlags::TYPE_4
+            Msaa::X4 => vk::SampleCountFlags::TYPE_4,
+            Msaa::X8 => vk::SampleCountFlags::TYPE_8
         }
     }
 }
