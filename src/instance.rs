@@ -210,7 +210,7 @@ impl PhysicalDevice
         String::from(unsafe { std::ffi::CStr::from_ptr(pointer) }.to_str().unwrap())
     }
     
-    pub fn queue_families(&self) -> &Vec<QueueFamilyInfo> { &self.queue_family_properties }
+    pub fn queue_families(&self) -> &[QueueFamilyInfo] { &self.queue_family_properties }
 }
 
 impl QueueFamilyInfo

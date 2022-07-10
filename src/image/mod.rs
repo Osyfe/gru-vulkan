@@ -78,7 +78,7 @@ impl Device
         }
     }
 
-    pub fn new_sampler(&self, info: &SamplerInfo) -> Sampler
+    pub fn new_sampler(&self, info: SamplerInfo) -> Sampler
     {
         let sampler_info = vk::SamplerCreateInfo::builder()
             .mag_filter(info.mag_filter.vk_filter())
@@ -123,7 +123,7 @@ impl ImageBuffer
 
 impl<'a> CommandBuffer<'a>
 {
-    pub fn copy_to_image<'b, 'c>(self, queue: &Queue, src: &'b ImageBuffer, dst: &'c Image, layer: u32, mark: Fence) -> CopyImageFence<'a, 'b, 'c>
+    pub fn copy_to_image<'b, 'c>(self, queue: &Queue, src: &'b ImageBuffer, dst: &'c Image, layer: u32, mark: Fence) -> CopyFence<'a, 'b, 'c>
     {
         if DEBUG_MODE { if let ImageUsage::Attachment { .. } = dst.image_usage { panic!("CommandBuffer::copy_image: Cannot transfer to framebuffer."); } }
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::copy_image: Wrong queue family."); }
@@ -242,10 +242,10 @@ impl<'a> CommandBuffer<'a>
             self.pool.device.logical_device.end_command_buffer(self.command_buffer).unwrap();
             self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence).unwrap();
         }
-        CopyImageFence { mark, command_buffer: self, _buf: src, _img: &dst.image }
+        CopyFence { mark, command_buffer: self, _src: &(), _dst: &() }
     }
 
-    pub fn copy_from_image<'b, 'c>(self, queue: &Queue, src: CopyImageSource<'c>, dst: &'b ImageBuffer, mark: Fence) -> CopyImageFence<'a, 'b, 'c>
+    pub fn copy_from_image<'b, 'c>(self, queue: &Queue, src: CopyImageSource<'c>, dst: &'b ImageBuffer, mark: Fence) -> CopyFence<'a, 'b, 'c>
     {
         let (legal, image, image_type, layout) = match src
         {
@@ -324,30 +324,25 @@ impl<'a> CommandBuffer<'a>
             self.pool.device.logical_device.end_command_buffer(self.command_buffer).unwrap();
             self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence).unwrap();
         }
-        CopyImageFence { mark, command_buffer: self, _buf: dst, _img: image }
+        CopyFence { mark, command_buffer: self, _src: &(), _dst: &() }
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum CopyImageSource<'a>
 {
     Swapchain(SwapchainImage<'a>),
     Image(&'a Image)
 }
 
-pub struct CopyImageFence<'a, 'b, 'c>
-{
-    pub mark: Fence,
-    pub command_buffer: CommandBuffer<'a>,
-    _buf: &'b ImageBuffer,
-    _img: &'c vk::Image
-}
-
+#[derive(Clone, Copy)]
 pub enum SamplerFilter
 {
     Linear,
     Nearest
 }
 
+#[derive(Clone, Copy)]
 pub enum SamplerAddressMode
 {
     Repeat,
@@ -355,6 +350,7 @@ pub enum SamplerAddressMode
     ClampToEdge
 }
 
+#[derive(Clone, Copy)]
 pub struct SamplerInfo
 {
     pub mag_filter: SamplerFilter,

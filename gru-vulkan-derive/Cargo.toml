@@ -5,7 +5,7 @@ authors = ["Jannik Fehre"]
 edition = "2018"
 
 [dependencies]
-syn = { version = "1.0.70", features = ["extra-traits"] }
+syn = { version = "1.0.70" }
 quote = "1.0.9"
 proc-macro2 = "1.0.26"
 

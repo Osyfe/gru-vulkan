@@ -60,7 +60,7 @@ impl Device
         subpass: u32,
         vertex_shader_spirv: Shader,
         fragment_shader_spirv: Shader,
-        attributes: &[&AttributeGroupInfo],
+        attributes: &[AttributeGroupInfo],
         layout: &PipelineLayout,
         info: &PipelineInfo
     ) -> Pipeline
@@ -170,6 +170,7 @@ impl Device
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct PushConstantInfo
 {
     pub vertex: bool,

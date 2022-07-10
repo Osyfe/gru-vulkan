@@ -31,7 +31,7 @@ impl Drop for Swapchain
     {
         unsafe
         {
-            for iv in &self.swapchain_image_views { self.device.logical_device.destroy_image_view(*iv, None); }
+            for iv in self.swapchain_image_views.iter() { self.device.logical_device.destroy_image_view(*iv, None); }
             self.swapchain_loader.destroy_swapchain(self.swapchain, None);
         } 
     }

@@ -51,7 +51,7 @@ pub struct PhysicalDevice
 {
     physical_device: vk::PhysicalDevice,
     physical_device_properties: vk::PhysicalDeviceProperties,
-    queue_family_properties: Vec<QueueFamilyInfo>
+    queue_family_properties: Box<[QueueFamilyInfo]>
 }
 
 #[derive(Clone)]
@@ -73,7 +73,7 @@ pub struct Queue
 pub struct QueueFamily
 {
     index: usize,
-    queues: Vec<Arc<Mutex<Queue>>>,
+    queues: Box<[Arc<Mutex<Queue>>]>,
     flags: vk::QueueFlags,
     surface_support: bool
 }
@@ -84,7 +84,7 @@ struct RawDevice
     physical_device: vk::PhysicalDevice,
     logical_device: ash::Device,
     allocator: Option<Mutex<alloc::Allocator>>,
-    queue_families: Vec<QueueFamily>,
+    queue_families: Box<[QueueFamily]>,
     buffer_layout_count: std::sync::atomic::AtomicU32
 }
 
@@ -98,12 +98,13 @@ pub struct Swapchain
     height: u32,
     swapchain_loader: ash::extensions::khr::Swapchain,
     swapchain: vk::SwapchainKHR,
-    swapchain_images: Vec<vk::Image>,
-    swapchain_image_views: Vec<vk::ImageView>,
+    swapchain_images: Box<[vk::Image]>,
+    swapchain_image_views: Box<[vk::ImageView]>,
     count: usize,
     cycle_index: std::cell::Cell<usize>
 }
 
+#[derive(Clone, Copy)]
 pub struct SwapchainImage<'a>
 {
     image: &'a vk::Image,
@@ -119,6 +120,7 @@ pub trait IndexType
     const FORMAT: vk::IndexType;
 }
 
+#[derive(Clone, Copy)]
 pub enum InputRate
 {
     Vertex,
@@ -128,6 +130,7 @@ pub enum InputRate
 #[repr(transparent)]
 pub struct AttributeLocation(pub u32);
 
+#[derive(Clone, Copy)]
 pub enum AttributeType
 {
     F1, F2, F3, F4,
@@ -141,6 +144,7 @@ pub trait AttributeGroupReprCpacked
     const ATTRIBUTES: &'static [(AttributeLocation, AttributeType)];
 }
 
+#[derive(Clone, Copy)]
 pub struct AttributeGroupInfo
 {
     rate: InputRate,
@@ -260,7 +264,7 @@ pub struct Sampler
 
 pub trait DescriptorStructReprC: Copy { }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DescriptorBindingType
 {
     Struct { size_in_bytes: u32 },
@@ -268,7 +272,7 @@ pub enum DescriptorBindingType
     SubpassInput { image_channel_type: ImageChannelType }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct DescriptorBindingInfo
 {
     ty: DescriptorBindingType,
@@ -281,12 +285,12 @@ struct RawDescriptorSetLayout
 {
     device: Arc<RawDevice>,
     set: u32,
-    bindings: Vec<DescriptorBindingInfo>,
+    bindings: Box<[DescriptorBindingInfo]>,
     descriptor_set_layout: vk::DescriptorSetLayout
 }
 
 #[derive(Clone)]
-pub struct DescriptorSetLayout(std::rc::Rc<RawDescriptorSetLayout>);
+pub struct DescriptorSetLayout(Arc<RawDescriptorSetLayout>);
 
 struct DescriptorPool
 {
@@ -296,9 +300,9 @@ struct DescriptorPool
 
 pub struct DescriptorSet
 {
-    pool: std::rc::Rc<DescriptorPool>,
+    pool: Arc<DescriptorPool>,
     descriptor_set: vk::DescriptorSet,
-    layout: std::rc::Rc<RawDescriptorSetLayout>
+    layout: Arc<RawDescriptorSetLayout>
 }
 
 //     #####     RENDER STUFF     #####
@@ -314,7 +318,7 @@ pub struct RenderPass
 {
     device: Arc<RawDevice>,
     render_pass: vk::RenderPass,
-    clear_values: Vec<vk::ClearValue>
+    clear_values: Box<[vk::ClearValue]>
 }
 
 pub struct PipelineLayout
@@ -325,6 +329,7 @@ pub struct PipelineLayout
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy)]
 pub struct ViewInfo
 {
     pub viewport_origin: (f32, f32),
@@ -339,6 +344,7 @@ pub struct Pipeline
     pipeline: vk::Pipeline
 }
 
+#[derive(Clone, Copy)]
 pub struct IndexBinding<'a>
 {
     buffer: &'a Buffer,
@@ -346,6 +352,7 @@ pub struct IndexBinding<'a>
     format: vk::IndexType
 }
 
+#[derive(Clone, Copy)]
 pub struct AttributeBinding<'a>
 {
     buffer: &'a Buffer,
@@ -376,4 +383,12 @@ pub struct Fence
 {
     device: Arc<RawDevice>,
     fence: vk::Fence
+}
+
+pub struct CopyFence<'a, 'b, 'c>
+{
+    pub mark: Fence,
+    pub command_buffer: CommandBuffer<'a>,
+    _src: &'b (),
+    _dst: &'c ()
 }

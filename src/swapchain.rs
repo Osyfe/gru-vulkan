@@ -32,8 +32,8 @@ impl Device
             .present_mode(if v_sync { v_sync_mode } else { no_v_sync_mode });
         let swapchain_loader = ash::extensions::khr::Swapchain::new(&self.0.instance.instance, &self.0.logical_device);
         let swapchain = unsafe { swapchain_loader.create_swapchain(&swapchain_create_info, None).unwrap() };
-        let swapchain_images = unsafe { swapchain_loader.get_swapchain_images(swapchain) }.unwrap();
-        let swapchain_image_views = swapchain_images.iter().map(|image|
+        let swapchain_images: Box<[vk::Image]> = Box::from(unsafe { swapchain_loader.get_swapchain_images(swapchain) }.unwrap());
+        let swapchain_image_views: Box<_> = swapchain_images.iter().map(|image|
         {
             let subresource_range = vk::ImageSubresourceRange::builder()
                 .aspect_mask(vk::ImageAspectFlags::COLOR)
@@ -133,7 +133,7 @@ pub struct SwapchainObjectIndex
 
 pub struct SwapchainObjects<T>
 {
-    objects: Vec<T>
+    objects: Box<[T]>
 }
 
 impl<T> SwapchainObjects<T>
@@ -171,13 +171,13 @@ impl<T> SwapchainObjects<T>
     #[inline]
     pub fn into_map<U, F: FnMut(T) -> U>(self, f: F) -> SwapchainObjects<U>
     {
-        SwapchainObjects { objects: self.objects.into_iter().map(f).collect() }
+        SwapchainObjects { objects: self.objects.into_vec().into_iter().map(f).collect() }
     }
 }
 
 pub struct SwapchainCycle<T>
 {
-    objects: Vec<T>
+    objects: Box<[T]>
 }
 
 impl<T> SwapchainCycle<T>
@@ -227,6 +227,6 @@ impl<T> SwapchainCycle<T>
     #[inline]
     pub fn into_map<U, F: FnMut(T) -> U>(self, f: F) -> SwapchainCycle<U>
     {
-        SwapchainCycle { objects: self.objects.into_iter().map(f).collect() }
+        SwapchainCycle { objects: self.objects.into_vec().into_iter().map(f).collect() }
     }
 }

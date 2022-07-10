@@ -18,7 +18,7 @@ impl Device
         }).collect();
         let descriptor_set_layout_info = vk::DescriptorSetLayoutCreateInfo::builder().bindings(&descriptor_set_layout_bindings);
         let descriptor_set_layout = unsafe { self.0.logical_device.create_descriptor_set_layout(&descriptor_set_layout_info, None) }.unwrap();
-        DescriptorSetLayout(std::rc::Rc::new(RawDescriptorSetLayout { device: self.0.clone(), set, bindings, descriptor_set_layout }))
+        DescriptorSetLayout(Arc::new(RawDescriptorSetLayout { device: self.0.clone(), set, bindings: Box::from(bindings), descriptor_set_layout }))
     }
 
     pub fn new_descriptor_sets(&self, set_layouts: &[(&DescriptorSetLayout, u32)]) -> Vec<Vec<DescriptorSet>>
@@ -63,7 +63,7 @@ impl Device
             .max_sets(set_count)
             .pool_sizes(&pool_sizes);
         let descriptor_pool = unsafe { self.0.logical_device.create_descriptor_pool(&descriptor_pool_info, None) }.unwrap();
-        let pool_rc = std::rc::Rc::new(DescriptorPool
+        let pool_arc = Arc::new(DescriptorPool
         {
             device: self.0.clone(),
             pool: descriptor_pool
@@ -77,7 +77,7 @@ impl Device
                 .descriptor_pool(descriptor_pool)
                 .set_layouts(&layouts[..]);
             let descriptor_sets = unsafe { self.0.logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info) }.unwrap();
-            descriptor_sets.iter().map(|set| DescriptorSet { pool: pool_rc.clone(), descriptor_set: *set, layout: layout.0.clone() }).collect()
+            descriptor_sets.iter().map(|set| DescriptorSet { pool: pool_arc.clone(), descriptor_set: *set, layout: layout.0.clone() }).collect()
         }).collect()
     }
 }
@@ -137,7 +137,7 @@ impl RawDescriptorSetLayout
     fn type_count(&self) -> (u32, u32, u32)
     {
         let (mut struct_count, mut sampler_count, mut input_attachment_count) = (0, 0, 0);
-        for binding in &self.bindings
+        for binding in self.bindings.iter()
         {
             let (a, b, c) = binding.type_count();
             struct_count += a;

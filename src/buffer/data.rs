@@ -48,6 +48,7 @@ impl AttributeType
 //     #####     F1 - F4
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct F1(f32);
 
@@ -64,6 +65,7 @@ impl Into<f32> for F1
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct F2(f32, f32);
 
@@ -94,6 +96,7 @@ impl Into<Vec2> for F2
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct F3(f32, f32, f32);
 
@@ -124,6 +127,7 @@ impl Into<Vec3> for F3
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct F4(f32, f32, f32, f32);
 
@@ -156,6 +160,7 @@ impl Into<Vec4> for F4
 //     #####     I1 - I4
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct I1(i32);
 
@@ -172,6 +177,7 @@ impl Into<i32> for I1
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct I2(i32, i32);
 
@@ -188,6 +194,7 @@ impl Into<(i32, i32)> for I2
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct I3(i32, i32, i32);
 
@@ -204,6 +211,7 @@ impl Into<(i32, i32, i32)> for I3
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct I4(i32, i32, i32, i32);
 
@@ -222,6 +230,7 @@ impl Into<(i32, i32, i32, i32)> for I4
 //     #####     U1 - U4
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct U1(u32);
 
@@ -238,6 +247,7 @@ impl Into<u32> for U1
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct U2(u32, u32);
 
@@ -254,6 +264,7 @@ impl Into<(u32, u32)> for U2
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct U3(u32, u32, u32);
 
@@ -270,6 +281,7 @@ impl Into<(u32, u32, u32)> for U3
 }
 
 #[derive(gru_vulkan_derive::AttributeType)]
+#[derive(Clone, Copy)]
 #[repr(C, packed)]
 pub struct U4(u32, u32, u32, u32);
 

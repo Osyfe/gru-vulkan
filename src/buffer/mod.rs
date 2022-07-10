@@ -1,5 +1,5 @@
-mod types;
-pub use types::*;
+mod data;
+pub use data::*;
 
 use super::*;
 
@@ -60,7 +60,7 @@ impl Device
 
 impl AttributeGroupInfo
 {
-    pub fn from<T: AttributeGroupReprCpacked>() -> Self
+    pub const fn from<T: AttributeGroupReprCpacked>() -> Self
     {
         Self
         {
@@ -73,7 +73,7 @@ impl AttributeGroupInfo
 impl<T> BufferView<T>
 {
     #[inline]
-    pub fn count(&self) -> u32
+    pub const fn count(&self) -> u32
     {
         self.count
     }
@@ -205,7 +205,7 @@ impl Drop for BufferMap<'_>
 
 impl<'a> CommandBuffer<'a>
 {
-    pub fn copy_buffer<'b, 'c>(self, queue: &Queue, src: &'b Buffer, dst: &'c Buffer, mark: Fence) -> CopyBufferFence<'a, 'b, 'c>
+    pub fn copy_buffer<'b, 'c>(self, queue: &Queue, src: &'b Buffer, dst: &'c Buffer, mark: Fence) -> CopyFence<'a, 'b, 'c>
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::copy_buffer: Wrong queue family."); }
         if DEBUG_MODE && !self.pool.queue_family_flags.contains(vk::QueueFlags::TRANSFER) { panic!("CommandBuffer::copy_buffer: This queue family does not support transfer operations."); }
@@ -233,16 +233,8 @@ impl<'a> CommandBuffer<'a>
             self.pool.device.logical_device.end_command_buffer(self.command_buffer).unwrap();
             self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence).unwrap();
         }
-        CopyBufferFence { mark, command_buffer: self, _src: src, _dst: dst }
+        CopyFence { mark, command_buffer: self, _src: &(), _dst: &() }
     }
-}
-
-pub struct CopyBufferFence<'a, 'b, 'c>
-{
-    pub mark: Fence,
-    pub command_buffer: CommandBuffer<'a>,
-    _src: &'b Buffer,
-    _dst: &'c Buffer
 }
 
 impl<'a> IndexBinding<'a>

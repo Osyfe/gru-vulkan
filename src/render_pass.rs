@@ -2,7 +2,7 @@ use super::*;
 
 impl Device
 {
-	pub fn new_render_pass(&self, color_attachments: &[&RenderPassColorAttachment], depth_attachment: Option<&RenderPassDepthAttachment>, subpasses: &[&Subpass]) -> RenderPass
+	pub fn new_render_pass(&self, color_attachments: &[RenderPassColorAttachment], depth_attachment: Option<RenderPassDepthAttachment>, subpasses: &[Subpass]) -> RenderPass
     {
         //attachments
         let num_attachments = color_attachments.len() + depth_attachment.map_or_else(|| 0, |_| 1);
@@ -204,10 +204,10 @@ impl Device
             .subpasses(&subpasses)
             .dependencies(&subpass_dependencies);
         let render_pass = unsafe { self.0.logical_device.create_render_pass(&render_pass_info, None) }.unwrap();
-        RenderPass { device: self.0.clone(), render_pass, clear_values: clear_colors }
+        RenderPass { device: self.0.clone(), render_pass, clear_values: Box::from(clear_colors) }
     }
 
-    pub fn new_framebuffer(&self, render_pass: &RenderPass, attachments: &[&FramebufferAttachment]) -> Framebuffer
+    pub fn new_framebuffer(&self, render_pass: &RenderPass, attachments: &[FramebufferAttachment]) -> Framebuffer
     {
         if DEBUG_MODE && attachments.len() == 0 { panic!("Device::new_framebuffer: At least 1 attachment is required."); }
         let (width, height) = attachments[0].dimensions();
@@ -236,6 +236,7 @@ impl Device
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum ColorAttachmentLoad
 {
     Load,
@@ -265,6 +266,7 @@ impl ColorAttachmentLoad
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum SwapchainLoad
 {
     Clear { color: [f32; 4] },
@@ -292,6 +294,7 @@ impl SwapchainLoad
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum DepthAttachmentLoad
 {
     Load,
@@ -321,6 +324,7 @@ impl DepthAttachmentLoad
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum AttachmentStore
 {
     Store,
@@ -339,6 +343,7 @@ impl AttachmentStore
     }
 }
 
+#[derive(Clone, Copy)]
 pub enum RenderPassColorAttachment
 {
     Swapchain(SwapchainLoad),
@@ -353,6 +358,7 @@ pub enum RenderPassColorAttachment
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct RenderPassDepthAttachment
 {
     pub image_channel_type: ImageChannelType,
@@ -363,24 +369,28 @@ pub struct RenderPassDepthAttachment
     pub final_layout: ImageLayout
 }
 
+#[derive(Clone, Copy)]
 pub struct InputAttachment
 {
     pub attachment_index: u32,
     pub fragment_input_attachment_index: u32
 }
 
+#[derive(Clone, Copy)]
 pub struct OutputAttachment
 {
     pub attachment_index: u32,
     pub fragment_out_location: u32
 }
 
+#[derive(Clone, Copy)]
 pub enum ResolveAttachment
 {
 	Index(u32),
 	Unused
 }
 
+#[derive(Clone, Copy)]
 pub struct Subpass<'a>
 {
     pub input_attachments: &'a [InputAttachment],
@@ -389,6 +399,7 @@ pub struct Subpass<'a>
     pub depth_attachment: bool
 }
 
+#[derive(Clone, Copy)]
 pub enum FramebufferAttachment<'a>
 {
     Swapchain(SwapchainImage<'a>),
