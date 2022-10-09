@@ -1,8 +1,9 @@
 use super::*;
 use std::os::raw::c_char;
 
-fn layer_name_pointers() -> (Vec<std::ffi::CString>, Vec<*const c_char>)
+fn layer_name_pointers(entry: &ash::Entry) -> (Vec<std::ffi::CString>, Vec<*const c_char>)
 {
+    let available_layers = entry.enumerate_instance_layer_properties().unwrap();
     let layer_names: Vec<std::ffi::CString> = if DEBUG_MODE
     {
         vec!
@@ -12,16 +13,40 @@ fn layer_name_pointers() -> (Vec<std::ffi::CString>, Vec<*const c_char>)
             std::ffi::CString::new("VK_LAYER_LUNARG_monitor").unwrap()
         ]
     } else { vec![] };
-    let layer_name_pointers = layer_names.iter().map(|layer_name| layer_name.as_ptr()).collect();
+    let layer_name_pointers = layer_names.iter()
+        .map(|layer_name| layer_name.as_ptr())
+        .filter(|name| available_layers.iter().any(|available| &available.layer_name as *const c_char == *name))
+        .collect();
     (layer_names, layer_name_pointers)
 }
 
-fn extension_name_pointers(window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> Vec<*const c_char>
+fn extension_name_pointers(entry: &ash::Entry, window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> (Vec<*const c_char>, bool)
 {
+    let available_extensions: Vec<_> = entry.enumerate_instance_extension_properties(None).unwrap().into_iter()
+        .map(|ext| unsafe { std::ffi::CStr::from_ptr(&ext.extension_name as *const c_char) }.to_owned())
+        .collect();
+    let exists = move |name: &std::ffi::CString| available_extensions.iter().any(|available| available == name);
     let mut extension_name_pointers = vec![];
-    if let Some(window) = window { ash_window::enumerate_required_extensions(window).unwrap().iter().for_each(|extension| extension_name_pointers.push(*extension)); }
-    if DEBUG_MODE { extension_name_pointers.push(ash::extensions::ext::DebugUtils::name().as_ptr()); }
-    extension_name_pointers
+    if let Some(window) = window
+    {
+        ash_window::enumerate_required_extensions(window).unwrap().iter().for_each(|extension|
+        {
+            let name = unsafe { std::ffi::CStr::from_ptr(*extension as *const c_char) }.to_owned();
+            if exists(&name) { extension_name_pointers.push(*extension); }
+            else { println!("Instance::new: Extension {name:?} missing"); }
+        });
+    }
+    let mut debug = false;
+    if DEBUG_MODE
+    {
+        let name = ash::extensions::ext::DebugUtils::name();
+        if exists(&name.to_owned())
+        {
+            extension_name_pointers.push(name.as_ptr());
+            debug = true;
+        }
+    }
+    (extension_name_pointers, debug)
 }
 
 fn surface(entry: &ash::Entry, instance: &ash::Instance, window: &dyn raw_window_handle::HasRawWindowHandle) -> vk::SurfaceKHR
@@ -60,22 +85,22 @@ impl Instance
             .engine_version(vk::make_api_version(0, 0, 0, 1))
             .api_version(vk::make_api_version(0, 1, 0, 106));
             
-        let (_layer_names, layer_name_pointers) = layer_name_pointers();
-        let extension_name_pointers = extension_name_pointers(window);
+        let (_layer_names, layer_name_pointers) = layer_name_pointers(&entry);
+        let (extension_name_pointers, debug_ext) = extension_name_pointers(&entry, window);
         let instance_create_info = vk::InstanceCreateInfo::builder()
             .application_info(&app_info)
             .enabled_layer_names(&layer_name_pointers)
             .enabled_extension_names(&extension_name_pointers);
             
-        let (instance, debug_utils) = if DEBUG_MODE
+        let (instance, debug_utils) = if debug_ext
         {   
             let mut debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
                 .message_severity
                 (
-                    vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+                    vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
+                  | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
                   //| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
                   //| vk::DebugUtilsMessageSeverityFlagsEXT::INFO
-                  | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
                 ).message_type
                 (
                     vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
@@ -102,7 +127,7 @@ impl Instance
             Surface { loader, surface }
         });
         
-        Self { _entry: entry, debug: debug_utils, instance, surface }
+        Self { entry, debug: debug_utils, instance, surface }
     }
     
     pub fn physical_devices(&self) -> Vec<PhysicalDevice>
@@ -148,7 +173,7 @@ impl Instance
                 .build()
         }).collect::<Vec<vk::DeviceQueueCreateInfo>>()[..];        
         let device_extension_name_pointers: Vec<*const c_char> = if self.surface.is_some() { vec![ash::extensions::khr::Swapchain::name().as_ptr()] } else { vec![] };     
-        let (_layer_names, layer_name_pointers) = layer_name_pointers();
+        let (_layer_names, layer_name_pointers) = layer_name_pointers(&self.entry);
         let features = unsafe { self.instance.get_physical_device_features(*physical_device) };
         if features.sampler_anisotropy != 1 { println!("sampler_anisotropy not supported!"); }
         if features.fill_mode_non_solid != 1 { println!("fill_mode_non_solid not supported!"); }

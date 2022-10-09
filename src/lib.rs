@@ -41,7 +41,7 @@ struct Surface
 
 pub struct Instance
 {
-    _entry: ash::Entry,
+    entry: ash::Entry,
     debug: Option<(DebugUtils, vk::DebugUtilsMessengerEXT)>,
     instance: ash::Instance,
     surface: Option<Surface>

@@ -6,6 +6,7 @@ name = "gru-vulkan"
 version = "0.1.0"
 authors = ["Jannik Fehre"]
 edition = "2021"
+publish = false
 
 [features]
 math = ["gru-misc/math"]
