@@ -67,33 +67,33 @@ impl Instance
             .enabled_layer_names(&layer_name_pointers)
             .enabled_extension_names(&extension_name_pointers);
             
-        let mut debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
-            .message_severity
-            (
-                vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-              //| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
-              //| vk::DebugUtilsMessageSeverityFlagsEXT::INFO
-              | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
-            ).message_type
-            (
-                vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
-              | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
-              | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
-            ).pfn_user_callback(Some(vulkan_debug_utils_callback));
-        let instance_create_info = if DEBUG_MODE { instance_create_info.push_next(&mut debug_create_info) } else { instance_create_info };
-      
-        let instance = unsafe { entry.create_instance(&instance_create_info, None).unwrap() };
-    
-        let debug_utils = if DEBUG_MODE
-        {
+        let (instance, debug_utils) = if DEBUG_MODE
+        {   
+            let mut debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
+                .message_severity
+                (
+                    vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+                  //| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+                  //| vk::DebugUtilsMessageSeverityFlagsEXT::INFO
+                  | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
+                ).message_type
+                (
+                    vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
+                  | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
+                  | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
+                ).pfn_user_callback(Some(vulkan_debug_utils_callback));
+            let instance_create_info = instance_create_info.push_next(&mut debug_create_info);
+            let instance = unsafe { entry.create_instance(&instance_create_info, None).unwrap() };
+
             let debug_utils = DebugUtils::new(&entry, &instance);
             let debug_utils_messenger = unsafe { debug_utils.create_debug_utils_messenger(&debug_create_info, None).unwrap() };
-            Some
-            ((
-                debug_utils,
-                debug_utils_messenger
-            ))
-        } else { None };
+            let debug_utils = Some((debug_utils, debug_utils_messenger));
+            (instance, debug_utils)
+        } else
+        {
+            let instance = unsafe { entry.create_instance(&instance_create_info, None).unwrap() };
+            (instance, None)
+        };
         
         let surface = window.map(|window|
         {
