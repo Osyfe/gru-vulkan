@@ -5,26 +5,25 @@ use super::*;
 
 impl Device
 {
-    pub fn new_buffer_type(&self) -> BufferType
+    pub fn new_buffer_type(&self) -> BufferTypeBuilder
     {
         let id = self.0.buffer_layout_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let uniform_align = unsafe { self.0.instance.instance.get_physical_device_properties(self.0.physical_device).limits.min_uniform_buffer_offset_alignment };
-        BufferType
+        let buffer_type = BufferType
         {
             id,
             offset_in_bytes: 0,
             uniform_align,
             indices: false,
             attributes: false,
-            uniforms: false,
-            sealed: false
-        }
+            uniforms: false
+        };
+        BufferTypeBuilder(buffer_type)
     }
 
-    pub fn new_buffer(&self, buffer_type: &mut BufferType, buffer_usage: BufferUsage) -> Buffer
+    pub fn new_buffer(&self, buffer_type: &BufferType, buffer_usage: BufferUsage) -> Buffer
     {
         if DEBUG_MODE && buffer_type.offset_in_bytes == 0 { panic!("Device::new_buffer: No empty buffers allowed."); }
-        buffer_type.sealed = true;
         let (location, mut buffer_usage_flags) = match buffer_usage
         {
             BufferUsage::Stage => (gpu_allocator::MemoryLocation::CpuToGpu, vk::BufferUsageFlags::TRANSFER_SRC),
@@ -79,43 +78,47 @@ impl<T> BufferView<T>
     }
 }
 
-impl BufferType
+impl BufferTypeBuilder
 {
     pub fn add_indices<T: IndexType>(&mut self, count: u32) -> BufferView<T>
     {
-        self.indices = true;
+        self.0.indices = true;
         self.add(count, std::mem::size_of::<T>() as u64)
     }
 
     pub fn add_attributes<T: AttributeGroupReprCpacked>(&mut self, count: u32) -> BufferView<T>
     {
-        self.attributes = true;
+        self.0.attributes = true;
         self.add(count, 1)
     }
 
     pub fn add_uniforms<T: DescriptorStructReprC>(&mut self, count: u32) -> BufferView<T>
     {
-        self.uniforms = true;
-        self.add(count, self.uniform_align)
+        self.0.uniforms = true;
+        self.add(count, self.0.uniform_align)
     }
 
     fn add<T>(&mut self, count: u32, align: u64) -> BufferView<T>
     {
-        if DEBUG_MODE && self.sealed { panic!("BufferLayout::add: Type is sealed after buffer creation."); }
         //if count == 0 { panic!("BufferLayout::add: No empty data permitted."); }
-        let offset_overflow = self.offset_in_bytes % align;
-        self.offset_in_bytes += if offset_overflow == 0 { 0 } else { align - offset_overflow };
-        let begin_offset_in_bytes = self.offset_in_bytes;
+        let offset_overflow = self.0.offset_in_bytes % align;
+        self.0.offset_in_bytes += if offset_overflow == 0 { 0 } else { align - offset_overflow };
+        let begin_offset_in_bytes = self.0.offset_in_bytes;
         let stride = (std::mem::size_of::<T>() as u64 / align + (if std::mem::size_of::<T>() as u64 % align == 0 { 0 } else { 1 })) * align;
-        self.offset_in_bytes += count as u64 * stride;
+        self.0.offset_in_bytes += count as u64 * stride;
         BufferView
         {
-            layout_id: self.id,
+            layout_id: self.0.id,
             offset_in_bytes: begin_offset_in_bytes as usize,
             count,
             stride: stride as u32,
             phantom: PhantomData
         }
+    }
+
+    pub fn build(self) -> BufferType
+    {
+        self.0
     }
 }
 

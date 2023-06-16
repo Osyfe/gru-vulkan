@@ -298,27 +298,3 @@ impl ViewInfo
         (viewport, scissor)
     }
 }
-
-/*
-impl PipelineInfo
-{
-    pub fn new(width: u32, height: u32) -> Self
-    {
-        Self
-        {
-            viewport_origin: (0.0, 0.0),
-            viewport_size: (width as f32, height as f32),
-            scissor_origin: (0, 0),
-            scissor_size: (width, height),
-            topology: PipelineTopology::TriangleList,
-            samples: Msaa::None,
-            min_sample_shading: None,
-            line_width: 1.0,
-            polygon: PipelinePolygon::Fill,
-            cull: PipelineCull::Back,
-            depth_test: true,
-            blend: false
-        }
-    }
-}
-*/

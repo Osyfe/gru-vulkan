@@ -85,7 +85,6 @@ impl Swapchain
             Ok((image_index, suboptimal)) => if !suboptimal { Ok(SwapchainObjectIndex { index: image_index as usize }) } else { Err(()) },
             Err(_) => Err(())
         }
-
     }
 
     #[inline]

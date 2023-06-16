@@ -158,9 +158,10 @@ pub struct BufferType
     uniform_align: u64,
     indices: bool,
     attributes: bool,
-    uniforms: bool,
-    sealed: bool
+    uniforms: bool
 }
+
+pub struct BufferTypeBuilder(BufferType);
 
 pub struct BufferView<T>
 {

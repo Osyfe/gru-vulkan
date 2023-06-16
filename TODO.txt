@@ -9,5 +9,5 @@ refine implicit external dependencies in render_pass?
 
 STUFF
 
-layout (input_attachment_index=0, set=0, binding=1) uniform subpassInput color;
+layout (input_attachment_index=0, set=0, binding=0) uniform subpassInput color;
 subpassLoad(color)
