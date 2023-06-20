@@ -15,21 +15,26 @@ fn layer_name_pointers(entry: &ash::Entry) -> (Vec<std::ffi::CString>, Vec<*cons
     } else { vec![] };
     let layer_name_pointers = layer_names.iter()
         .map(|layer_name| layer_name.as_ptr())
-        .filter(|name| available_layers.iter().any(|available| &available.layer_name as *const c_char == *name))
+        .filter(|name| available_layers.iter().any(|available| unsafe
+        {
+            let available = std::ffi::CStr::from_ptr(&available.layer_name as *const c_char);
+            let wanted = std::ffi::CStr::from_ptr(*name);
+            available == wanted
+        }))
         .collect();
     (layer_names, layer_name_pointers)
 }
 
-fn extension_name_pointers(entry: &ash::Entry, window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> (Vec<*const c_char>, bool)
+fn extension_name_pointers(entry: &ash::Entry, display: Option<&dyn raw_window_handle::HasRawDisplayHandle>) -> (Vec<*const c_char>, bool)
 {
     let available_extensions: Vec<_> = entry.enumerate_instance_extension_properties(None).unwrap().into_iter()
         .map(|ext| unsafe { std::ffi::CStr::from_ptr(&ext.extension_name as *const c_char) }.to_owned())
         .collect();
     let exists = move |name: &std::ffi::CString| available_extensions.iter().any(|available| available == name);
     let mut extension_name_pointers = vec![];
-    if let Some(window) = window
+    if let Some(display) = display
     {
-        ash_window::enumerate_required_extensions(window).unwrap().iter().for_each(|extension|
+        ash_window::enumerate_required_extensions(display.raw_display_handle()).unwrap().iter().for_each(|extension|
         {
             let name = unsafe { std::ffi::CStr::from_ptr(*extension as *const c_char) }.to_owned();
             if exists(&name) { extension_name_pointers.push(*extension); }
@@ -49,9 +54,9 @@ fn extension_name_pointers(entry: &ash::Entry, window: Option<&dyn raw_window_ha
     (extension_name_pointers, debug)
 }
 
-fn surface(entry: &ash::Entry, instance: &ash::Instance, window: &dyn raw_window_handle::HasRawWindowHandle) -> vk::SurfaceKHR
+fn surface(entry: &ash::Entry, instance: &ash::Instance, display: &dyn raw_window_handle::HasRawDisplayHandle, window: &dyn raw_window_handle::HasRawWindowHandle) -> vk::SurfaceKHR
 {
-    unsafe { ash_window::create_surface(entry, instance, window, None) }.unwrap()
+    unsafe { ash_window::create_surface(entry, instance, display.raw_display_handle(), window.raw_window_handle(), None) }.unwrap()
 }
 
 //the debug callback
@@ -70,9 +75,12 @@ unsafe extern "system" fn vulkan_debug_utils_callback
     vk::FALSE
 }
 
+pub unsafe trait HasBothHandles: raw_window_handle::HasRawDisplayHandle + raw_window_handle::HasRawWindowHandle {}
+unsafe impl<T: raw_window_handle::HasRawDisplayHandle + raw_window_handle::HasRawWindowHandle> HasBothHandles for T {}
+
 impl Instance
 {
-    pub fn new(window: Option<&dyn raw_window_handle::HasRawWindowHandle>) -> Self
+    pub fn new<W: HasBothHandles>(window: Option<&W>) -> Self
     {
         let entry = ash::Entry::linked();
        
@@ -86,7 +94,7 @@ impl Instance
             .api_version(vk::make_api_version(0, 1, 0, 106));
             
         let (_layer_names, layer_name_pointers) = layer_name_pointers(&entry);
-        let (extension_name_pointers, debug_ext) = extension_name_pointers(&entry, window);
+        let (extension_name_pointers, debug_ext) = extension_name_pointers(&entry, window.map(|window| window as &dyn raw_window_handle::HasRawDisplayHandle));
         let instance_create_info = vk::InstanceCreateInfo::builder()
             .application_info(&app_info)
             .enabled_layer_names(&layer_name_pointers)
@@ -123,11 +131,11 @@ impl Instance
         let surface = window.map(|window|
         {
             let loader = ash::extensions::khr::Surface::new(&entry, &instance);
-            let surface = surface(&entry, &instance, window);
+            let surface = surface(&entry, &instance, window as &dyn raw_window_handle::HasRawDisplayHandle, window as &dyn raw_window_handle::HasRawWindowHandle);
             Surface { loader, surface }
         });
         
-        Self { entry, debug: debug_utils, instance, surface }
+        Self { _entry: entry, debug: debug_utils, instance, surface }
     }
     
     pub fn physical_devices(&self) -> Vec<PhysicalDevice>
@@ -173,7 +181,7 @@ impl Instance
                 .build()
         }).collect::<Vec<vk::DeviceQueueCreateInfo>>()[..];        
         let device_extension_name_pointers: Vec<*const c_char> = if self.surface.is_some() { vec![ash::extensions::khr::Swapchain::name().as_ptr()] } else { vec![] };     
-        let (_layer_names, layer_name_pointers) = layer_name_pointers(&self.entry);
+        //let (_layer_names, layer_name_pointers) = layer_name_pointers(&self.entry);
         let features = unsafe { self.instance.get_physical_device_features(*physical_device) };
         if features.sampler_anisotropy != 1 { println!("sampler_anisotropy not supported!"); }
         if features.fill_mode_non_solid != 1 { println!("fill_mode_non_solid not supported!"); }
@@ -188,7 +196,7 @@ impl Instance
         let device_create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(&queue_infos)
             .enabled_extension_names(&device_extension_name_pointers)
-            .enabled_layer_names(&layer_name_pointers)
+            //.enabled_layer_names(&layer_name_pointers)
             .enabled_features(&physical_device_features);
         let logical_device = unsafe { self.instance.create_device(*physical_device, &device_create_info, None).unwrap() };
         

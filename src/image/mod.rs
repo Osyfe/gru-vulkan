@@ -27,8 +27,14 @@ impl Device
 
         let device = &self.0.logical_device;
         let vk_image = unsafe { device.create_image(&image_create_info, None) }.unwrap();
-        let requirements = unsafe { device.get_image_memory_requirements(vk_image) };
-        let allocation_create_desc = alloc::AllocationCreateDesc { name: "", requirements, location: gpu_allocator::MemoryLocation::GpuOnly, linear: false };
+        let allocation_create_desc = alloc::AllocationCreateDesc
+        {
+            name: "",
+            requirements: unsafe { device.get_image_memory_requirements(vk_image) },
+            location: gpu_allocator::MemoryLocation::GpuOnly,
+            linear: false,
+            allocation_scheme: alloc::AllocationScheme::GpuAllocatorManaged
+        };
         let allocation = self.0.allocator.as_ref().unwrap().lock().unwrap().allocate(&allocation_create_desc).unwrap();
         unsafe { device.bind_image_memory(vk_image, allocation.memory(), allocation.offset()).unwrap(); }
 
@@ -64,8 +70,14 @@ impl Device
             .usage(vk::BufferUsageFlags::TRANSFER_SRC | vk::BufferUsageFlags::TRANSFER_DST);
         let device = &self.0.logical_device;
         let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }.unwrap();
-        let requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
-        let allocation_create_desc = alloc::AllocationCreateDesc { name: "", requirements, location: gpu_allocator::MemoryLocation::CpuToGpu, linear: true };
+        let allocation_create_desc = alloc::AllocationCreateDesc
+        {
+            name: "",
+            requirements: unsafe { device.get_buffer_memory_requirements(buffer) },
+            location: gpu_allocator::MemoryLocation::CpuToGpu,
+            linear: true,
+            allocation_scheme: alloc::AllocationScheme::GpuAllocatorManaged
+        };
         let allocation = self.0.allocator.as_ref().unwrap().lock().unwrap().allocate(&allocation_create_desc).unwrap();
         unsafe { device.bind_buffer_memory(buffer, allocation.memory(), allocation.offset()).unwrap(); }
 

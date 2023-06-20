@@ -40,8 +40,14 @@ impl Device
 
         let device = &self.0.logical_device;
         let buffer = unsafe { device.create_buffer(&buffer_create_info, None) }.unwrap();
-        let requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
-        let allocation_create_desc = alloc::AllocationCreateDesc { name: "", requirements, location, linear: true };
+        let allocation_create_desc = alloc::AllocationCreateDesc
+        {
+            name: "",
+            requirements: unsafe { device.get_buffer_memory_requirements(buffer) },
+            location,
+            linear: true,
+            allocation_scheme: alloc::AllocationScheme::GpuAllocatorManaged
+        };
         let allocation = self.0.allocator.as_ref().unwrap().lock().unwrap().allocate(&allocation_create_desc).unwrap();
         unsafe { device.bind_buffer_memory(buffer, allocation.memory(), allocation.offset()).unwrap(); }
         

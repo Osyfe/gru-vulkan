@@ -16,24 +16,18 @@ fn attribute_group_derive(input: TokenStream, rate: proc_macro2::TokenStream) ->
                 if !field.ident.is_some() { panic!("Only named fields allowed."); }
                 if field.attrs.len() != 1 { panic!("Only the pattern \"location = ?\" allowed."); }
                 let attr = &field.attrs[0];
-                let location: u32 = match attr.parse_meta().expect("Only the pattern \"location = ?\" allowed.")
+                if attr.path().is_ident("location")
                 {
-                    syn::Meta::NameValue(value) =>
+                    if let syn::Meta::NameValue(syn::MetaNameValue { value: syn::Expr::Lit(syn::ExprLit { lit: syn::Lit::Int(value), .. }), ..}) = &attr.meta
                     {
-                        if !value.path.is_ident("location") { panic!("Only the pattern \"location = ?\" allowed."); }
-                        match value.lit
+                        let location: u32 = value.base10_parse().expect("Only the pattern \"location = ?\" allowed.");
+                        if let syn::Type::Path(path) = &field.ty
                         {
-                            syn::Lit::Int(int) => int.base10_parse().expect("Only the pattern \"location = ?\" allowed."),
-                            _ => panic!("Only the pattern \"location = ?\" allowed.")
-                        }
-                    },
-                    _ => panic!("Only the pattern \"location = ?\" allowed.")
-                };
-                if let syn::Type::Path(path) = field.ty
-                {
-                    let ty = path.path.segments.into_iter().nth(0).expect("Only the pattern \"location = ?\" allowed.").ident;
-                    comps.extend(quote::quote!((AttributeLocation(#location), #ty::TYPE),));
-                } else { panic!("Only the pattern \"location = ?\" allowed."); }
+                            let ty = &path.path.segments.iter().nth(0).expect("Only the pattern \"location = ?\" allowed.").ident;
+                            comps.extend(quote::quote!((AttributeLocation(#location), #ty::TYPE),));
+                        } else { panic!("Only the pattern \"location = ?\" allowed."); }
+                    }
+                }
             }
         } else { panic!("Only named fields allowed."); }
     } else { panic!("Only structs allowed."); }

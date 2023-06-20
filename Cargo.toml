@@ -13,10 +13,10 @@ math = ["gru-misc/math"]
 
 [dependencies]
 gru-vulkan-derive = { path = "gru-vulkan-derive" }
-ash = { version = "0.37.0", default-features = false, features = ["linked"] }
-ash-window = "0.10.0"
-raw-window-handle = "0.3.4" #newer version not used by ash-window
-inline-spirv = { version = "0.1.4", default-features = false, features = ["glsl"] }
-gpu-allocator = { version = "0.18.0", default-features = false, features = ["vulkan"] }
+ash = { version = "0.37.3", default-features = false, features = ["linked"] }
+ash-window = "0.12.0"
+raw-window-handle = "0.5.2" #newer version not used by ash-window
+inline-spirv = { version = "0.1.6", default-features = false, features = ["glsl"] }
+gpu-allocator = { version = "0.22.0", default-features = false, features = ["vulkan"] }
 gru-misc = { path = "../gru-misc", optional = true }
-serde = { version = "1.0.137", default-features = false, features = ["derive"], optional = true }
+serde = { version = "1.0.164", default-features = false, features = ["derive"], optional = true }
