@@ -47,6 +47,7 @@ impl AttributeType
 
 //     #####     F1 - F4
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -64,6 +65,7 @@ impl Into<f32> for F1
     fn into(self) -> f32 { self.0 }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -95,6 +97,7 @@ impl Into<Vec2> for F2
     fn into(self) -> Vec2 { Vec2(self.0, self.1) }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -126,6 +129,7 @@ impl Into<Vec3> for F3
     fn into(self) -> Vec3 { Vec3(self.0, self.1, self.2) }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -159,6 +163,7 @@ impl Into<Vec4> for F4
 
 //     #####     I1 - I4
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -176,6 +181,7 @@ impl Into<i32> for I1
     fn into(self) -> i32 { self.0 }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -193,6 +199,7 @@ impl Into<(i32, i32)> for I2
     fn into(self) -> (i32, i32) { (self.0, self.1) }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -210,6 +217,7 @@ impl Into<(i32, i32, i32)> for I3
     fn into(self) -> (i32, i32, i32) { (self.0, self.1, self.2) }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -229,6 +237,7 @@ impl Into<(i32, i32, i32, i32)> for I4
 
 //     #####     U1 - U4
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -246,6 +255,7 @@ impl Into<u32> for U1
     fn into(self) -> u32 { self.0 }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -263,6 +273,7 @@ impl Into<(u32, u32)> for U2
     fn into(self) -> (u32, u32) { (self.0, self.1) }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]
@@ -280,6 +291,7 @@ impl Into<(u32, u32, u32)> for U3
     fn into(self) -> (u32, u32, u32) { (self.0, self.1, self.2) }
 }
 
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 #[derive(gru_vulkan_derive::AttributeType)]
 #[derive(Clone, Copy)]
 #[repr(C, packed)]

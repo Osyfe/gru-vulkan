@@ -14,13 +14,13 @@ fn layer_name_pointers(entry: &ash::Entry) -> (Vec<std::ffi::CString>, Vec<*cons
         ]
     } else { vec![] };
     let layer_name_pointers = layer_names.iter()
-        .map(|layer_name| layer_name.as_ptr())
         .filter(|name| available_layers.iter().any(|available| unsafe
         {
             let available = std::ffi::CStr::from_ptr(&available.layer_name as *const c_char);
-            let wanted = std::ffi::CStr::from_ptr(*name);
+            let wanted = name.as_c_str();
             available == wanted
         }))
+        .map(|layer_name| layer_name.as_ptr())
         .collect();
     (layer_names, layer_name_pointers)
 }
