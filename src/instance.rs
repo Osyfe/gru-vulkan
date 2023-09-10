@@ -82,7 +82,10 @@ impl Instance
 {
     pub fn new<W: HasBothHandles>(window: Option<&W>) -> Self
     {
+        #[cfg(not(feature = "loaded"))]
         let entry = ash::Entry::linked();
+        #[cfg(feature = "loaded")]
+        let entry = unsafe { ash::Entry::load() }.unwrap();
        
         let enginename = std::ffi::CString::new("gru-vulkan").unwrap();
         let app_name = std::ffi::CString::new("osyfe app").unwrap();
@@ -189,10 +192,10 @@ impl Instance
         if features.large_points != 1 { println!("large_points not supported!"); }
         if features.sample_rate_shading != 1 { println!("sample_rate_shading not supported!"); }
         let physical_device_features = vk::PhysicalDeviceFeatures::builder()
-            .sampler_anisotropy(true)
-            .fill_mode_non_solid(true)
-            .wide_lines(true)
-            .sample_rate_shading(true);
+            .sampler_anisotropy(features.sampler_anisotropy == 1)
+            .fill_mode_non_solid(features.fill_mode_non_solid == 1)
+            .wide_lines(features.wide_lines == 1)
+            .sample_rate_shading(features.sample_rate_shading == 1);
         let device_create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(&queue_infos)
             .enabled_extension_names(&device_extension_name_pointers)

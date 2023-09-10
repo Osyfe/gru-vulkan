@@ -18,9 +18,11 @@ impl Device
             if present_modes.iter().any(|mode| *mode == vk::PresentModeKHR::IMMEDIATE) { vk::PresentModeKHR::IMMEDIATE }
             else if present_modes.iter().any(|mode| *mode == vk::PresentModeKHR::MAILBOX) { vk::PresentModeKHR::MAILBOX }
             else { vk::PresentModeKHR::FIFO };
+        let min_image_count = surface_capabilities.min_image_count;
+        let max_image_count = surface_capabilities.max_image_count.max(min_image_count);
         let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
             .surface(*surface)
-            .min_image_count(3.max(surface_capabilities.min_image_count).min(surface_capabilities.max_image_count))
+            .min_image_count(3.max(min_image_count).min(max_image_count))
             .image_format(Swapchain::IMAGE_CHANNEL_TYPE.vk_format())
             .image_color_space(vk::ColorSpaceKHR::SRGB_NONLINEAR)
             .image_extent(surface_capabilities.current_extent)
