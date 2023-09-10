@@ -82,7 +82,7 @@ impl Instance
 {
     pub fn new<W: HasBothHandles>(window: Option<&W>) -> Self
     {
-        #[cfg(not(feature = "loaded"))]
+        #[cfg(feature = "linked")]
         let entry = ash::Entry::linked();
         #[cfg(feature = "loaded")]
         let entry = unsafe { ash::Entry::load() }.unwrap();

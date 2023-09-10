@@ -9,12 +9,13 @@ edition = "2021"
 publish = false
 
 [features]
-math = ["gru-misc/math"]
+linked = ["ash/linked"]
 loaded = ["ash/loaded"]
+math = ["gru-misc/math"]
 
 [dependencies]
 gru-vulkan-derive = { path = "gru-vulkan-derive" }
-ash = { version = "0.37.3", default-features = false, features = ["linked"] }
+ash = { version = "0.37.3", default-features = false }
 ash-window = "0.12.0"
 raw-window-handle = "0.5.2" #newer version not used by ash-window
 inline-spirv = { version = "0.1.6", default-features = false, features = ["glsl"] }
