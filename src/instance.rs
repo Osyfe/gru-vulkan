@@ -86,6 +86,8 @@ impl Instance
         let entry = ash::Entry::linked();
         #[cfg(feature = "loaded")]
         let entry = unsafe { ash::Entry::load() }.unwrap();
+        #[cfg(not(any(feature = "linked", feature = "loaded")))]
+        let entry = std::compile_error!("Enable either the \"linked\" or the \"loaded\" feature!");
        
         let enginename = std::ffi::CString::new("gru-vulkan").unwrap();
         let app_name = std::ffi::CString::new("osyfe app").unwrap();
