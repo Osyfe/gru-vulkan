@@ -164,6 +164,12 @@ impl<T> SwapchainObjects<T>
     }
 
     #[inline]
+    pub fn into_vec(self) -> Vec<T>
+    {
+        self.objects.into_vec()
+    }
+
+    #[inline]
     pub fn map<U, F: FnMut(&T) -> U>(&self, f: F) -> SwapchainObjects<U>
     {
         SwapchainObjects { objects: self.objects.iter().map(f).collect() }

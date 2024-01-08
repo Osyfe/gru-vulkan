@@ -5,8 +5,8 @@ members = ["gru-vulkan-derive"]
 name = "gru-vulkan"
 version = "0.1.0"
 authors = ["Jannik Fehre"]
+license = "MIT OR Apache-2.0"
 edition = "2021"
-publish = false
 
 [features]
 linked = ["ash/linked"]

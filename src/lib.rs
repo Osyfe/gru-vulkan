@@ -200,6 +200,8 @@ pub enum ImageChannelType
     BgraUnorm,
     BgraSint,
     BgraUint,
+    RgbaSfloat,
+    RgbaShalffloat,
     RSrgb,
     RSnorm,
     RUnorm,
