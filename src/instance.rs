@@ -83,10 +83,13 @@ impl Instance
     pub fn new<W: HasBothHandles>(window: Option<&W>) -> Self
     {
         #[cfg(feature = "linked")]
+        #[allow(unused)]
         let entry = ash::Entry::linked();
         #[cfg(feature = "loaded")]
+        #[allow(unused)]
         let entry = unsafe { ash::Entry::load() }.unwrap();
         #[cfg(not(any(feature = "linked", feature = "loaded")))]
+        #[allow(unused)]
         let entry = std::compile_error!("Enable either the \"linked\" or the \"loaded\" feature!");
        
         let enginename = std::ffi::CString::new("gru-vulkan").unwrap();

@@ -15,12 +15,12 @@ mod descriptor;
 mod command;
 pub use instance::*;
 pub use swapchain::*;
-pub use device::*;
+//pub use device::*;
 pub use render_pass::*;
 pub use pipeline::*;
 pub use buffer::*;
 pub use image::*;
-pub use descriptor::*;
+//pub use descriptor::*;
 pub use command::*;
 
 use std::marker::PhantomData;
@@ -213,12 +213,21 @@ pub enum ImageChannelType
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
+pub enum ImageLayers
+{
+    Single, //sampler2D
+    Array(u32), //sampler2DArray
+    Cube, //samplerCubeMap
+    CubeArray(u32) //samplerCubeMapArray
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct ImageType
 {
     pub channel: ImageChannelType,
     pub width: u32,
     pub height: u32,
-    pub layers: Option<u32>
+    pub layers: ImageLayers
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]

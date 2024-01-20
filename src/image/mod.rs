@@ -1,5 +1,5 @@
 mod stuff;
-pub use stuff::*;
+//pub use stuff::*;
 
 use super::*;
 
@@ -23,7 +23,8 @@ impl Device
             .tiling(vk::ImageTiling::OPTIMAL)
             .sharing_mode(vk::SharingMode::EXCLUSIVE)
             .samples(image_usage.vk_sample_count())
-            .usage(image_usage.vk_image_usage_flags());
+            .usage(image_usage.vk_image_usage_flags())
+            .flags(image_type.flags());
 
         let device = &self.0.logical_device;
         let vk_image = unsafe { device.create_image(&image_create_info, None) }.unwrap();
@@ -40,7 +41,7 @@ impl Device
 
         let image_view_create_info = vk::ImageViewCreateInfo::builder()
             .image(vk_image)
-            .view_type(if image_type.layers.is_some() { vk::ImageViewType::TYPE_2D_ARRAY } else { vk::ImageViewType::TYPE_2D })
+            .view_type(image_type.view_type())
             .format(image_type.channel.vk_format())
             .subresource_range(vk::ImageSubresourceRange
             {
@@ -97,7 +98,7 @@ impl Device
             .min_filter(info.min_filter.vk_filter())
             .mipmap_mode(info.mipmap_filter.vk_sampler_mipmap_mode())
             .min_lod(0.0)
-            .max_lod(100.0)
+            .max_lod(vk::LOD_CLAMP_NONE)
             .mip_lod_bias(0.0) //TODO ?
             .address_mode_u(info.address_mode.vk_sampler_addres_mode())
             .address_mode_v(info.address_mode.vk_sampler_addres_mode())
@@ -262,7 +263,7 @@ impl<'a> CommandBuffer<'a>
         let (legal, image, image_type, layout) = match src
         {
             CopyImageSource::Swapchain(image) =>
-                (true, image.image, ImageType { channel: Swapchain::IMAGE_CHANNEL_TYPE, width: image.width, height: image.height, layers: None }, vk::ImageLayout::PRESENT_SRC_KHR),
+                (true, image.image, ImageType { channel: Swapchain::IMAGE_CHANNEL_TYPE, width: image.width, height: image.height, layers: ImageLayers::Single }, vk::ImageLayout::PRESENT_SRC_KHR),
             CopyImageSource::Image(image) =>
                 if let ImageUsage::Attachment { transfer_src: true, .. } = image.image_usage { (true, &image.image, image.image_type, vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL) }
                 else { (false, &image.image, image.image_type, vk::ImageLayout::UNDEFINED) }

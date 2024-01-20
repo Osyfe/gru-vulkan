@@ -71,9 +71,35 @@ impl ImageChannelType
 
 impl ImageType
 {
+    pub(crate) const fn flags(&self) -> vk::ImageCreateFlags
+    {
+        match self.layers
+        {
+            ImageLayers::Single | ImageLayers::Array(_) => vk::ImageCreateFlags::empty(),
+            ImageLayers::Cube | ImageLayers::CubeArray(_) => vk::ImageCreateFlags::CUBE_COMPATIBLE
+        }
+    }
+
     pub(crate) const fn layers(&self) -> u32
     {
-        if let Some(layers) = self.layers { layers } else { 1 }
+        match self.layers
+        {
+            ImageLayers::Single => 1,
+            ImageLayers::Array(layers) => layers,
+            ImageLayers::Cube => 6,
+            ImageLayers::CubeArray(layers) => 6 * layers
+        }
+    }
+
+    pub(crate) const fn view_type(&self) -> vk::ImageViewType
+    {
+        match self.layers
+        {
+            ImageLayers::Single => vk::ImageViewType::TYPE_2D,
+            ImageLayers::Array(_) => vk::ImageViewType::TYPE_2D_ARRAY,
+            ImageLayers::Cube => vk::ImageViewType::CUBE,
+            ImageLayers::CubeArray(_) => vk::ImageViewType::CUBE_ARRAY
+        }
     }
 
     pub(crate) const fn layer_size_in_bytes(&self) -> u64

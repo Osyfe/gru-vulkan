@@ -2,7 +2,7 @@ command pool reset
 test screenshot from not swapchain image (memorybarrier...)
 swapchain vk::ImageUsage::TRANSFER_SRC optional?
 std140 problem (https://docs.rs/glsl-layout/0.4.0/glsl_layout/index.html vs https://docs.rs/std140/0.2.4/std140/)
-compute shader (https://github.com/Erkaman/vulkan_minimal_compute)
+compute shader (https://vulkan-tutorial.com/Compute_Shader, https://github.com/Erkaman/vulkan_minimal_compute)
 depth buffer formats?
 more vertex attribute types
 refine implicit external dependencies in render_pass?
