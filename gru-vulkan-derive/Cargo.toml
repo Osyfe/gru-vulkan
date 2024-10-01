@@ -6,9 +6,9 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-syn = { version = "2.0.18" }
-quote = "1.0.28"
-proc-macro2 = "1.0.60"
+syn = "2.0.79"
+quote = "1.0.37"
+proc-macro2 = "1.0.86"
 
 [lib]
 proc-macro = true
