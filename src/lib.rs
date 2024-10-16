@@ -230,8 +230,8 @@ pub struct ImageType
     pub layers: ImageLayers
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Msaa
 {
     None,
