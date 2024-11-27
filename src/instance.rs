@@ -99,7 +99,7 @@ impl Instance
             .application_version(vk::make_api_version(0, 0, 0, 1))
             .engine_name(&enginename)
             .engine_version(vk::make_api_version(0, 0, 0, 1))
-            .api_version(vk::make_api_version(0, 1, 0, 106));
+            .api_version(vk::make_api_version(0, 1, 0, 299));
             
         let (_layer_names, layer_name_pointers) = layer_name_pointers(&entry);
         let (extension_name_pointers, debug_ext) = extension_name_pointers(&entry, window.map(|window| window as &dyn raw_window_handle::HasRawDisplayHandle));
