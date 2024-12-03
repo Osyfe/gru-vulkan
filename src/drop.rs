@@ -99,6 +99,7 @@ impl Drop for Framebuffer
 {
     fn drop(&mut self)
     {
+        for image_view in &self.image_views { unsafe { self.device.logical_device.destroy_image_view(*image_view, None); } }
         unsafe { self.device.logical_device.destroy_framebuffer(self.framebuffer, None); }
     }
 }

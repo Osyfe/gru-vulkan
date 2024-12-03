@@ -211,6 +211,7 @@ impl Device
     {
         if DEBUG_MODE && attachments.len() == 0 { panic!("Device::new_framebuffer: At least 1 attachment is required."); }
         let (width, height) = attachments[0].dimensions();
+        let mut image_views = Vec::new();
         let mut attachments_vec = Vec::with_capacity(attachments.len());
         for attachment in attachments.iter()
         {
@@ -218,10 +219,27 @@ impl Device
         	match attachment
         	{
         		FramebufferAttachment::Swapchain(SwapchainImage { image_view, .. }) => attachments_vec.push(**image_view),
-        		FramebufferAttachment::Image(image) =>
+        		FramebufferAttachment::Image { image, layer } =>
         		{
         			if let ImageUsage::Texture { .. } = image.image_usage { panic!("Swapchain::new_framebuffers: Texture cannot be used as attachment."); }
-            		attachments_vec.push(image.image_view);
+                    if let Some(layer) = layer
+                    {
+                        let image_view_create_info = vk::ImageViewCreateInfo::builder()
+                            .image(image.image)
+                            .view_type(image.image_type.view_type())
+                            .format(image.image_type.channel.vk_format())
+                            .subresource_range(vk::ImageSubresourceRange
+                            {
+                                aspect_mask: if image.image_usage.depth() { vk::ImageAspectFlags::DEPTH } else { vk::ImageAspectFlags::COLOR },
+                                base_mip_level: 0,
+                                level_count: image.image_usage.mip_levels(image.image_type),
+                                base_array_layer: *layer,
+                                layer_count: 1
+                            });
+                        let image_view = unsafe { self.0.logical_device.create_image_view(&image_view_create_info, None) }.unwrap();
+                        image_views.push(image_view);
+                        attachments_vec.push(image_view);
+                    } else { attachments_vec.push(image.image_view); }
         		}
         	}
         }
@@ -232,7 +250,7 @@ impl Device
             .height(height)
             .layers(1);
         let framebuffer = unsafe { self.0.logical_device.create_framebuffer(&framebuffer_info, None) }.unwrap();
-        Framebuffer { device: self.0.clone(), framebuffer, size: (width, height) }
+        Framebuffer { device: self.0.clone(), image_views, framebuffer, size: (width, height) }
     }
 }
 
@@ -403,17 +421,22 @@ pub struct Subpass<'a>
 pub enum FramebufferAttachment<'a>
 {
     Swapchain(SwapchainImage<'a>),
-    Image(&'a Image)
+    Image { image: &'a Image, layer: Option<u32> }
 }
 
 impl<'a> FramebufferAttachment<'a>
 {
+    pub fn image(image: &'a Image) -> Self
+    {
+        Self::Image { image, layer: None }
+    }
+    
 	const fn dimensions(&self) -> (u32, u32)
 	{
 		match self
 		{
 			FramebufferAttachment::Swapchain(SwapchainImage { width, height, .. }) => (*width, *height),
-			FramebufferAttachment::Image(image) => (image.image_type.width, image.image_type.height)
+			FramebufferAttachment::Image { image, .. } => (image.image_type.width, image.image_type.height)
 		}
 	}
 }

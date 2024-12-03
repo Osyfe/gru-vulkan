@@ -322,6 +322,7 @@ pub struct DescriptorSet
 pub struct Framebuffer
 {
     device: Arc<RawDevice>,
+    image_views: Vec<vk::ImageView>,
     framebuffer: vk::Framebuffer,
     size: (u32, u32)
 }

@@ -106,7 +106,7 @@ impl Device
             .anisotropy_enable(true)
             .max_anisotropy(16.0)
             .unnormalized_coordinates(false)
-            .compare_enable(false); //TODO for shadow maps?
+            .compare_enable(false);
         let sampler = unsafe { self.0.logical_device.create_sampler(&sampler_info, None) }.unwrap();
         Sampler { device: self.0.clone(), sampler }
     }
