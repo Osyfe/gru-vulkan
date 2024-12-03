@@ -196,11 +196,13 @@ impl Instance
         if features.wide_lines != 1 { println!("wide_lines not supported!"); }
         if features.large_points != 1 { println!("large_points not supported!"); }
         if features.sample_rate_shading != 1 { println!("sample_rate_shading not supported!"); }
+        if features.depth_clamp != 1 { println!("depth_clamp not supported!"); }
         let physical_device_features = vk::PhysicalDeviceFeatures::builder()
             .sampler_anisotropy(features.sampler_anisotropy == 1)
             .fill_mode_non_solid(features.fill_mode_non_solid == 1)
             .wide_lines(features.wide_lines == 1)
-            .sample_rate_shading(features.sample_rate_shading == 1);
+            .sample_rate_shading(features.sample_rate_shading == 1)
+            .depth_clamp(features.depth_clamp == 1);
         let device_create_info = vk::DeviceCreateInfo::builder()
             .queue_create_infos(&queue_infos)
             .enabled_extension_names(&device_extension_name_pointers)

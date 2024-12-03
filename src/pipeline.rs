@@ -122,6 +122,7 @@ impl Device
         let input_assembly_info = vk::PipelineInputAssemblyStateCreateInfo::builder()
             .topology(info.topology.vk_primitive_topology());
         let rasterizer_info = vk::PipelineRasterizationStateCreateInfo::builder()
+            .depth_clamp_enable(info.depth_test.depth_clamp_enable())
             .front_face(vk::FrontFace::COUNTER_CLOCKWISE)
             .cull_mode(info.cull.vk_cull_mode())
             .line_width(info.line_width)
@@ -131,8 +132,8 @@ impl Device
             .sample_shading_enable(info.min_sample_shading.is_some())
             .min_sample_shading(*info.min_sample_shading.as_ref().unwrap_or_else(|| &0.0));
         let depth_stencil_info = vk::PipelineDepthStencilStateCreateInfo::builder()
-            .depth_test_enable(info.depth_test)
-            .depth_write_enable(info.depth_test)
+            .depth_test_enable(info.depth_test.depth_test_enable())
+            .depth_write_enable(info.depth_test.depth_test_enable())
             .depth_compare_op(vk::CompareOp::LESS_OR_EQUAL);
         let color_blend_attachments = [vk::PipelineColorBlendAttachmentState::builder()
             .blend_enable(info.blend)
@@ -242,6 +243,35 @@ impl PipelineCull
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
+pub enum DepthTest
+{
+    None,
+    Normal,
+    Clamp
+}
+
+impl DepthTest
+{
+    const fn depth_test_enable(&self) -> bool
+    {
+        match self
+        {
+            DepthTest::None => false,
+            DepthTest::Normal | DepthTest::Clamp => true
+        }
+    }
+    
+    const fn depth_clamp_enable(&self) -> bool
+    {
+        match self
+        {
+            DepthTest::None | DepthTest::Normal => false,
+            DepthTest::Clamp => true
+        }
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct PipelineInfo
 {
     pub view: Option<ViewInfo>,
@@ -251,7 +281,7 @@ pub struct PipelineInfo
     pub line_width: f32,
     pub polygon: PipelinePolygon,
     pub cull: PipelineCull,
-    pub depth_test: bool,
+    pub depth_test: DepthTest,
     pub blend: bool
 }
 
