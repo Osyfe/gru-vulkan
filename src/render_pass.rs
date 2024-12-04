@@ -3,8 +3,16 @@ use std::ops::Range;
 
 impl Device
 {
-	pub fn new_render_pass(&self, color_attachments: &[RenderPassColorAttachment], depth_attachment: Option<RenderPassDepthAttachment>, subpasses: &[Subpass]) -> RenderPass
+	pub fn new_render_pass(&self, info: RenderPassInfo) -> RenderPass
     {
+        let RenderPassInfo
+        {
+            color_attachments,
+            depth_attachment,
+            subpasses,
+            #[cfg(feature = "multiview")]
+            multiview
+        } = info;
         //attachments
         let num_attachments = color_attachments.len() + depth_attachment.map_or_else(|| 0, |_| 1);
         let mut clear_colors = Vec::with_capacity(num_attachments);
@@ -217,7 +225,23 @@ impl Device
             .attachments(&attachments)
             .subpasses(&subpasses)
             .dependencies(&subpass_dependencies);
-        let render_pass = unsafe { self.0.logical_device.create_render_pass(&render_pass_info, None) }.unwrap();
+        let render_pass = 'rp:
+        {
+            #[cfg(feature = "multiview")]
+            if let Some(Multiview { count, spatial_coherency }) = multiview
+            {
+                let full_mask = (1 << count) - 1;
+                let view_masks = vec![full_mask; subpasses.len()];
+                let render_pass_multiview_create_info = vk::RenderPassMultiviewCreateInfoKHR::default()
+                    .view_masks(&view_masks);
+                let mut render_pass_multiview_create_info =
+                    if spatial_coherency { render_pass_multiview_create_info.correlation_masks(std::slice::from_ref(&full_mask)) }
+                    else { render_pass_multiview_create_info };
+                let render_pass_info = render_pass_info.push_next(&mut render_pass_multiview_create_info);
+                #[allow(unused_parens)] break 'rp (unsafe { self.0.logical_device.create_render_pass(&render_pass_info, None) });
+            }
+            #[allow(unused_parens)] break 'rp (unsafe { self.0.logical_device.create_render_pass(&render_pass_info, None) });
+        }.unwrap();
         RenderPass { device: self.0.clone(), render_pass, clear_values: Box::from(clear_colors) }
     }
 
@@ -429,6 +453,24 @@ pub struct Subpass<'a>
     pub output_attachments: &'a [OutputAttachment],
     pub resolve_attachments: Option<&'a [ResolveAttachment]>,
     pub depth_attachment: bool
+}
+
+#[cfg(feature = "multiview")]
+#[derive(Clone, Copy)]
+pub struct Multiview
+{
+    pub count: u32,
+    pub spatial_coherency: bool
+}
+
+#[derive(Clone, Copy)]
+pub struct RenderPassInfo<'a>
+{
+    pub color_attachments: &'a [RenderPassColorAttachment],
+    pub depth_attachment: Option<RenderPassDepthAttachment>,
+    pub subpasses: &'a [Subpass<'a>],
+    #[cfg(feature = "multiview")]
+    pub multiview: Option<Multiview>
 }
 
 #[derive(Clone, Copy)]

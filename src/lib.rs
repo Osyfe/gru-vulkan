@@ -41,7 +41,7 @@ struct Surface
 
 pub struct Instance
 {
-    _entry: ash::Entry,
+    #[allow(unused)] entry: ash::Entry,
     debug: Option<(ash::ext::debug_utils::Instance, vk::DebugUtilsMessengerEXT)>,
     instance: ash::Instance,
     surface: Option<Surface>

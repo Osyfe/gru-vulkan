@@ -44,9 +44,9 @@ fn extension_name_pointers(entry: &ash::Entry, window: Option<&dyn HasBothHandle
     }
     #[cfg(feature = "multiview")]
     {
-        let name = ash::khr::get_display_properties2::NAME;
+        let name = ash::khr::get_physical_device_properties2::NAME;
         if exists(name) { extension_name_pointers.push(name.as_ptr()); }
-        else { println!("Instance::new: Extions {name:?} missing"); }
+        else { println!("Instance::new: Extension {name:?} missing"); }
     }
 
     let mut debug = false;
@@ -151,7 +151,7 @@ impl Instance
             Surface { loader, surface }
         });
         
-        Self { _entry: entry, debug: debug_utils, instance, surface }
+        Self { entry, debug: debug_utils, instance, surface }
     }
     
     pub fn physical_devices(&self) -> Vec<PhysicalDevice>
@@ -195,18 +195,20 @@ impl Instance
                 .queue_family_index(index as u32)
                 .queue_priorities(&priorities)
         }).collect::<Vec<vk::DeviceQueueCreateInfo>>()[..];
-        #[allow(unused_mut)] let mut device_extension_name_pointers: Vec<*const c_char> = if self.surface.is_some() { vec![ash::khr::swapchain::NAME.as_ptr()] } else { vec![] };    
+        #[allow(unused_mut)] let mut device_extension_name_pointers: Vec<*const c_char> = if self.surface.is_some() { vec![ash::khr::swapchain::NAME.as_ptr()] } else { vec![] };
         #[cfg(feature = "multiview")]
         {
+            let physical_device_properties2_instance = ash::khr::get_physical_device_properties2::Instance::new(&self.entry, &self.instance);
+
             let mut physical_device_multiview_features = vk::PhysicalDeviceMultiviewFeaturesKHR::default();
             let mut physical_device_features2 = vk::PhysicalDeviceFeatures2KHR::default().push_next(&mut physical_device_multiview_features);
-            unsafe { self.instance.get_physical_device_features2(*physical_device, &mut physical_device_features2)};
+            unsafe { physical_device_properties2_instance.get_physical_device_features2(*physical_device, &mut physical_device_features2)};
             if physical_device_multiview_features.multiview != 1 { println!("multiview not supported!"); }
 
-            let mut physical_device_multiview_properties = vk::PhysicalDeviceMultiviewPropertiesKHR::default();
-            let mut physical_device_properties2 = vk::PhysicalDeviceProperties2KHR::default().push_next(&mut physical_device_multiview_properties);
-            unsafe { self.instance.get_physical_device_properties2(*physical_device, &mut physical_device_properties2) };
-            println!("max multiview count: {}", physical_device_multiview_properties.max_multiview_view_count);
+            //let mut physical_device_multiview_properties = vk::PhysicalDeviceMultiviewPropertiesKHR::default();
+            //let mut physical_device_properties2 = vk::PhysicalDeviceProperties2KHR::default().push_next(&mut physical_device_multiview_properties);
+            //unsafe { physical_device_properties2_instance.get_physical_device_properties2(*physical_device, &mut physical_device_properties2) };
+            //println!("max multiview count: {}", physical_device_multiview_properties.max_multiview_view_count);
 
             device_extension_name_pointers.push(ash::khr::multiview::NAME.as_ptr());
         }
