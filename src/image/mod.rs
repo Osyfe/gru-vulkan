@@ -103,7 +103,7 @@ impl Device
             .address_mode_u(info.address_mode.vk_sampler_addres_mode())
             .address_mode_v(info.address_mode.vk_sampler_addres_mode())
             .address_mode_w(info.address_mode.vk_sampler_addres_mode())
-            .anisotropy_enable(true)
+            .anisotropy_enable(info.anisotropy)
             .max_anisotropy(16.0)
             .unnormalized_coordinates(false)
             .compare_enable(false);
@@ -369,5 +369,6 @@ pub struct SamplerInfo
     pub mag_filter: SamplerFilter,
     pub min_filter: SamplerFilter,
     pub mipmap_filter: SamplerFilter,
-    pub address_mode: SamplerAddressMode
+    pub address_mode: SamplerAddressMode,
+    pub anisotropy: bool
 }
