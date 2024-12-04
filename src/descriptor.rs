@@ -9,14 +9,13 @@ impl Device
             let stage_flags =
                 if binding.vertex { vk::ShaderStageFlags::VERTEX } else { vk::ShaderStageFlags::empty() }
               | if binding.fragment { vk::ShaderStageFlags::FRAGMENT } else { vk::ShaderStageFlags::empty() };
-            vk::DescriptorSetLayoutBinding::builder()
+            vk::DescriptorSetLayoutBinding::default()
                 .binding(id as u32)
                 .descriptor_type(binding.vk_type())
                 .descriptor_count(binding.count)
                 .stage_flags(stage_flags)
-                .build()
         }).collect();
-        let descriptor_set_layout_info = vk::DescriptorSetLayoutCreateInfo::builder().bindings(&descriptor_set_layout_bindings);
+        let descriptor_set_layout_info = vk::DescriptorSetLayoutCreateInfo::default().bindings(&descriptor_set_layout_bindings);
         let descriptor_set_layout = unsafe { self.0.logical_device.create_descriptor_set_layout(&descriptor_set_layout_info, None) }.unwrap();
         DescriptorSetLayout(Arc::new(RawDescriptorSetLayout { device: self.0.clone(), set, bindings: Box::from(bindings), descriptor_set_layout }))
     }
@@ -59,7 +58,7 @@ impl Device
             })
         };
 
-        let descriptor_pool_info = vk::DescriptorPoolCreateInfo::builder()
+        let descriptor_pool_info = vk::DescriptorPoolCreateInfo::default()
             .max_sets(set_count)
             .pool_sizes(&pool_sizes);
         let descriptor_pool = unsafe { self.0.logical_device.create_descriptor_pool(&descriptor_pool_info, None) }.unwrap();
@@ -73,7 +72,7 @@ impl Device
         {
             let mut layouts = Vec::with_capacity(*count as usize);
             for _ in 0..*count { layouts.push(layout.0.descriptor_set_layout); }
-            let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::builder()
+            let descriptor_set_allocate_info = vk::DescriptorSetAllocateInfo::default()
                 .descriptor_pool(descriptor_pool)
                 .set_layouts(&layouts[..]);
             let descriptor_sets = unsafe { self.0.logical_device.allocate_descriptor_sets(&descriptor_set_allocate_info) }.unwrap();
@@ -167,13 +166,15 @@ impl DescriptorSet
             offset: (view.offset_in_bytes as u32 + i * view.stride) as u64,
             range: view.stride as u64,
         }).collect();
-        let descriptor_sets_write = [vk::WriteDescriptorSet::builder()
-            .dst_set(self.descriptor_set)
-            .dst_binding(binding)
-            .dst_array_element(0)
-            .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
-            .buffer_info(&buffer_infos)
-            .build()];
+        let descriptor_sets_write =
+        [
+            vk::WriteDescriptorSet::default()
+                .dst_set(self.descriptor_set)
+                .dst_binding(binding)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::UNIFORM_BUFFER)
+                .buffer_info(&buffer_infos)
+        ];
         unsafe { self.pool.device.logical_device.update_descriptor_sets(&descriptor_sets_write, &[]) };
     }
 
@@ -201,13 +202,12 @@ impl DescriptorSet
                 ..Default::default()
             }
         }).collect();
-        let descriptor_write_image = vk::WriteDescriptorSet::builder()
+        let descriptor_write_image = vk::WriteDescriptorSet::default()
             .dst_set(self.descriptor_set)
             .dst_binding(binding)
             .dst_array_element(0)
             .descriptor_type(vk::DescriptorType::COMBINED_IMAGE_SAMPLER)
-            .image_info(&image_infos)
-            .build();
+            .image_info(&image_infos);
         unsafe { self.pool.device.logical_device.update_descriptor_sets(&[descriptor_write_image], &[]); }
     }
 
@@ -227,13 +227,12 @@ impl DescriptorSet
             image_view: image.image_view,
             ..Default::default()
         };
-        let descriptor_write_image = vk::WriteDescriptorSet::builder()
+        let descriptor_write_image = vk::WriteDescriptorSet::default()
             .dst_set(self.descriptor_set)
             .dst_binding(binding)
             .dst_array_element(0)
             .descriptor_type(vk::DescriptorType::INPUT_ATTACHMENT)
-            .image_info(&[input_attachment_info])
-            .build();
+            .image_info(std::slice::from_ref(&input_attachment_info));
         unsafe { self.pool.device.logical_device.update_descriptor_sets(&[descriptor_write_image], &[]); }
     }
 }

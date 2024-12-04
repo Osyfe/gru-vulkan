@@ -25,7 +25,7 @@ pub use command::*;
 
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
-use ash::{self, vk, extensions::ext::DebugUtils};
+use ash::{self, vk};
 use gpu_allocator::vulkan as alloc;
 
 pub use gru_vulkan_derive::{VertexAttributeGroupReprCpacked, InstanceAttributeGroupReprCpacked, DescriptorStructReprC};
@@ -35,14 +35,14 @@ pub use inline_spirv::include_spirv;
 
 struct Surface
 {
-    loader: ash::extensions::khr::Surface,
+    loader: ash::khr::surface::Instance,
     surface: vk::SurfaceKHR
 }
 
 pub struct Instance
 {
     _entry: ash::Entry,
-    debug: Option<(DebugUtils, vk::DebugUtilsMessengerEXT)>,
+    debug: Option<(ash::ext::debug_utils::Instance, vk::DebugUtilsMessengerEXT)>,
     instance: ash::Instance,
     surface: Option<Surface>
 }
@@ -96,7 +96,7 @@ pub struct Swapchain
     device: Arc<RawDevice>,
     width: u32,
     height: u32,
-    swapchain_loader: ash::extensions::khr::Swapchain,
+    swapchain_loader: ash::khr::swapchain::Device,
     swapchain: vk::SwapchainKHR,
     swapchain_images: Box<[vk::Image]>,
     swapchain_image_views: Box<[vk::ImageView]>,

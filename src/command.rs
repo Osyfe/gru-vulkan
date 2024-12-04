@@ -4,7 +4,7 @@ impl Device
 {
     pub fn new_command_pool(&self, queue_family: &QueueFamily) -> CommandPool
     {
-        let command_pool_info = vk::CommandPoolCreateInfo::builder()
+        let command_pool_info = vk::CommandPoolCreateInfo::default()
             .queue_family_index(queue_family.index as u32)
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
         let command_pool = unsafe { self.0.logical_device.create_command_pool(&command_pool_info, None) }.unwrap();
@@ -16,7 +16,7 @@ impl CommandPool
 {
     pub fn new_command_buffer(&self) -> CommandBuffer
     {
-        let command_bufffer_allocate_info = vk::CommandBufferAllocateInfo::builder()
+        let command_bufffer_allocate_info = vk::CommandBufferAllocateInfo::default()
             .command_pool(self.pool)
             .command_buffer_count(1);
         let command_buffer = unsafe { self.device.logical_device.allocate_command_buffers(&command_bufffer_allocate_info) }.unwrap()[0];
@@ -59,7 +59,7 @@ impl<'a> CommandBuffer<'a>
     #[inline]
     pub fn record<'b>(&'b mut self) -> CommandBufferRecord<'a, 'b>
     {
-        let command_buffer_begin_info = vk::CommandBufferBeginInfo::builder()
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::empty());
         unsafe { self.pool.device.logical_device.begin_command_buffer(self.command_buffer, &command_buffer_begin_info) }.unwrap();
         CommandBufferRecord { buffer: self }
@@ -69,7 +69,7 @@ impl<'a> CommandBuffer<'a>
     pub fn submit(&self, queue: &Queue, wait: Option<&Semaphore>, signal: Option<&Semaphore>, mark: &Fence)
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::submit: Wrong queue family."); }
-        let mut submit_info = vk::SubmitInfo::builder().command_buffers(std::slice::from_ref(&self.command_buffer));
+        let mut submit_info = vk::SubmitInfo::default().command_buffers(std::slice::from_ref(&self.command_buffer));
         if let Some(wait) = wait
         {
             submit_info = submit_info
@@ -77,7 +77,7 @@ impl<'a> CommandBuffer<'a>
                 .wait_dst_stage_mask(&[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT]);
         }
         if let Some(signal) = signal { submit_info = submit_info.signal_semaphores(std::slice::from_ref(&signal.semaphore)); }
-        let submit_info = [submit_info.build()];
+        let submit_info = [submit_info];
         unsafe { self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence) }.unwrap();
     }
 }
@@ -93,7 +93,7 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
     pub fn render_pass<'c>(&'c mut self, render_pass: &RenderPass, framebuffer: &Framebuffer) -> CommandBufferRecordRenderPass<'a, 'b, 'c>
     {
         let (width, height) = framebuffer.size;
-        let render_pass_begin_info = vk::RenderPassBeginInfo::builder()
+        let render_pass_begin_info = vk::RenderPassBeginInfo::default()
             .render_pass(render_pass.render_pass)
             .framebuffer(framebuffer.framebuffer)
             .render_area(vk::Rect2D

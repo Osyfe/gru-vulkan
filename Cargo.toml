@@ -11,14 +11,15 @@ edition = "2021"
 [features]
 linked = ["ash/linked"]
 loaded = ["ash/loaded"]
+multiview = []
 math = ["gru-misc/math"]
 
 [dependencies]
 gru-vulkan-derive = { path = "gru-vulkan-derive" }
-ash = { version = "0.37.3", default-features = false }
-ash-window = "0.12.0"
-raw-window-handle = "0.5.2" #newer version not used by ash-window
-inline-spirv = { version = "0.1.6", default-features = false, features = ["glsl"] }
-gpu-allocator = { version = "0.22.0", default-features = false, features = ["vulkan"] }
+ash = { version = "0.38.0", default-features = false, features = ["debug", "std"] }
+ash-window = "0.13.0"
+raw-window-handle = "0.6.2"
+inline-spirv = { version = "0.2.1", default-features = false, features = ["glsl"] }
+gpu-allocator = { version = "0.27.0", default-features = false, features = ["vulkan"] }
 gru-misc = { path = "../gru-misc", optional = true }
-serde = { version = "1.0.164", default-features = false, features = ["derive"], optional = true }
+serde = { version = "1.0.215", default-features = false, features = ["derive"], optional = true }

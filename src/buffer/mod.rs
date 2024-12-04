@@ -34,7 +34,7 @@ impl Device
             if buffer_type.indices { vk::BufferUsageFlags::INDEX_BUFFER } else { vk::BufferUsageFlags::empty() }
           | if buffer_type.attributes { vk::BufferUsageFlags::VERTEX_BUFFER } else { vk::BufferUsageFlags::empty() }
           | if buffer_type.uniforms { vk::BufferUsageFlags::UNIFORM_BUFFER } else { vk::BufferUsageFlags::empty() };
-        let buffer_create_info = vk::BufferCreateInfo::builder()
+        let buffer_create_info = vk::BufferCreateInfo::default()
             .size(buffer_type.offset_in_bytes)
             .usage(buffer_usage_flags);
 
@@ -222,7 +222,7 @@ impl<'a> CommandBuffer<'a>
         if DEBUG_MODE && dst.buffer_usage != BufferUsage::Static { panic!("CommandBuffer::copy_buffer: Destination buffer has not static memory type."); }
         if DEBUG_MODE && src.layout_id != dst.layout_id { panic!("CommandBuffer::copy_buffer: Buffer need to have the same layout."); }
 
-        let command_buffer_begin_info = vk::CommandBufferBeginInfo::builder()
+        let command_buffer_begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         let buffer_copy = vk::BufferCopy
         {
@@ -231,9 +231,8 @@ impl<'a> CommandBuffer<'a>
             size: src.size_in_bytes
         };
         let submit_info =
-        [   vk::SubmitInfo::builder()
+        [   vk::SubmitInfo::default()
             .command_buffers(std::slice::from_ref(&self.command_buffer))
-            .build()
         ];
         unsafe
         {

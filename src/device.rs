@@ -29,14 +29,14 @@ impl Device
 
     pub fn new_semaphore(&self) -> Semaphore
     {
-        let semaphore_create_info = vk::SemaphoreCreateInfo::builder();
+        let semaphore_create_info = vk::SemaphoreCreateInfo::default();
         let semaphore = unsafe { self.0.logical_device.create_semaphore(&semaphore_create_info, None) }.unwrap();
         Semaphore { device: self.0.clone(), semaphore }
     }
 
     pub fn new_fence(&self, signaled: bool) -> Fence
     {
-        let mut fence_create_info = vk::FenceCreateInfo::builder();
+        let mut fence_create_info = vk::FenceCreateInfo::default();
         if signaled { fence_create_info = fence_create_info.flags(vk::FenceCreateFlags::SIGNALED) };
         let fence = unsafe { self.0.logical_device.create_fence(&fence_create_info, None) }.unwrap();
         Fence { device: self.0.clone(), fence }

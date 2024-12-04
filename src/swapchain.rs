@@ -20,7 +20,7 @@ impl Device
             else { vk::PresentModeKHR::FIFO };
         let min_image_count = surface_capabilities.min_image_count;
         let max_image_count = surface_capabilities.max_image_count.max(min_image_count);
-        let swapchain_create_info = vk::SwapchainCreateInfoKHR::builder()
+        let swapchain_create_info = vk::SwapchainCreateInfoKHR::default()
             .surface(*surface)
             .min_image_count(3.max(min_image_count).min(max_image_count))
             .image_format(Swapchain::IMAGE_CHANNEL_TYPE.vk_format())
@@ -32,22 +32,22 @@ impl Device
             .pre_transform(surface_capabilities.current_transform)
             .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
             .present_mode(if v_sync { v_sync_mode } else { no_v_sync_mode });
-        let swapchain_loader = ash::extensions::khr::Swapchain::new(&self.0.instance.instance, &self.0.logical_device);
+        let swapchain_loader = ash::khr::swapchain::Device::new(&self.0.instance.instance, &self.0.logical_device);
         let swapchain = unsafe { swapchain_loader.create_swapchain(&swapchain_create_info, None).unwrap() };
         let swapchain_images: Box<[vk::Image]> = Box::from(unsafe { swapchain_loader.get_swapchain_images(swapchain) }.unwrap());
         let swapchain_image_views: Box<_> = swapchain_images.iter().map(|image|
         {
-            let subresource_range = vk::ImageSubresourceRange::builder()
+            let subresource_range = vk::ImageSubresourceRange::default()
                 .aspect_mask(vk::ImageAspectFlags::COLOR)
                 .base_mip_level(0)
                 .level_count(1)
                 .base_array_layer(0)
                 .layer_count(1);
-            let image_view_create_info = vk::ImageViewCreateInfo::builder()
+            let image_view_create_info = vk::ImageViewCreateInfo::default()
                 .image(*image)
                 .view_type(vk::ImageViewType::TYPE_2D)
                 .format(Swapchain::IMAGE_CHANNEL_TYPE.vk_format())
-                .subresource_range(*subresource_range);
+                .subresource_range(subresource_range);
             unsafe { self.0.logical_device.create_image_view(&image_view_create_info, None) }.unwrap()
         }).collect();
         let count = swapchain_images.len();
@@ -96,7 +96,7 @@ impl Swapchain
         let semaphores = &[wait.semaphore];
         let swapchains = &[self.swapchain];
         let image_indices = &[index.index as u32];
-        let present_info = vk::PresentInfoKHR::builder()
+        let present_info = vk::PresentInfoKHR::default()
             .wait_semaphores(semaphores)
             .swapchains(swapchains)
             .image_indices(image_indices);
