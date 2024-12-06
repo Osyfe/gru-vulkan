@@ -131,6 +131,14 @@ impl Drop for Pipeline
     }
 }
 
+impl Drop for Compute
+{
+    fn drop(&mut self)
+    {
+        unsafe { self.device.logical_device.destroy_pipeline(self.compute, None); }
+    }
+}
+
 impl Drop for CommandPool
 {
     fn drop(&mut self)
