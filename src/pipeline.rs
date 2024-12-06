@@ -6,6 +6,16 @@ use super::*;
 pub type Shader = &'static [u32];
 
 #[macro_export]
+macro_rules! comp_shader
+{
+    ($path:expr) =>
+    {
+        if cfg!(debug_assertions) { include_spirv!($path, glsl, comp, vulkan1_0) }
+        else { include_spirv!($path, glsl, comp, max_perf, no_debug, vulkan1_0) }
+    }
+}
+
+#[macro_export]
 macro_rules! vert_shader
 {
     ($path:expr) =>
@@ -168,7 +178,7 @@ impl Device
         {
             self.0.logical_device.destroy_shader_module(fragment_shader_module, None);
             self.0.logical_device.destroy_shader_module(vertex_shader_module, None);
-        };
+        }
         Pipeline { device: self.0.clone(), pipeline }
     }
 }

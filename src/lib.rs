@@ -12,6 +12,7 @@ mod pipeline;
 mod buffer;
 mod image;
 mod descriptor;
+mod compute;
 mod command;
 pub use instance::*;
 pub use swapchain::*;
@@ -21,6 +22,7 @@ pub use pipeline::*;
 pub use buffer::*;
 pub use image::*;
 //pub use descriptor::*;
+//pub use compute::*;
 pub use command::*;
 
 use std::marker::PhantomData;
@@ -28,7 +30,7 @@ use std::sync::{Arc, Mutex};
 use ash::{self, vk};
 use gpu_allocator::vulkan as alloc;
 
-pub use gru_vulkan_derive::{VertexAttributeGroupReprCpacked, InstanceAttributeGroupReprCpacked, DescriptorStructReprC};
+pub use gru_vulkan_derive::{VertexAttributeGroupReprCpacked, InstanceAttributeGroupReprCpacked, StorageStructReprC, DescriptorStructReprC};
 pub use inline_spirv::include_spirv;
 
 //     #####     INSTANCE     #####
@@ -158,7 +160,8 @@ pub struct BufferType
     uniform_align: u64,
     indices: bool,
     attributes: bool,
-    uniforms: bool
+    uniforms: bool,
+    storage: bool
 }
 
 pub struct BufferTypeBuilder(BufferType);
@@ -274,14 +277,24 @@ pub struct Sampler
 
 //     #####     DESCRIPTOR     #####
 
+pub trait StorageStructReprC { }
 pub trait DescriptorStructReprC: Copy { }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum DescriptorBindingType
 {
+    Storage,
     Struct { size_in_bytes: u32 },
     Sampler { image_channel_type: ImageChannelType },
     SubpassInput { image_channel_type: ImageChannelType }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct DescriptorVisibility
+{
+    pub compute: bool,
+    pub vertex: bool,
+    pub fragment: bool
 }
 
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -289,8 +302,7 @@ pub struct DescriptorBindingInfo
 {
     ty: DescriptorBindingType,
     count: u32,
-    vertex: bool,
-    fragment: bool
+    visibility: DescriptorVisibility
 }
 
 struct RawDescriptorSetLayout
@@ -370,6 +382,14 @@ pub struct AttributeBinding<'a>
 {
     buffer: &'a Buffer,
     offset_in_bytes: u64
+}
+
+//     #####     COMPUTE STUFF     #####
+
+pub struct Compute
+{
+    device: Arc<RawDevice>,
+    compute: vk::Pipeline
 }
 
 pub struct CommandPool

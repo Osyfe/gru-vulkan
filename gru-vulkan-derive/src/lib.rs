@@ -55,6 +55,19 @@ pub fn instance_attribute_group_derive(input: TokenStream) -> TokenStream
     attribute_group_derive(input, quote::quote!(Instance))
 }
 
+#[proc_macro_derive(StorageStructReprC)]
+pub fn storage_struct_derive(input: TokenStream) -> TokenStream
+{
+    let input = syn::parse_macro_input!(input as syn::DeriveInput);
+    let name = &input.ident;
+    let expanded = quote::quote!
+    {
+        impl StorageStructReprC for #name { }
+    };
+    //println!("{}", expanded);
+    TokenStream::from(expanded)
+}
+
 #[proc_macro_derive(DescriptorStructReprC)]
 pub fn descriptor_struct_derive(input: TokenStream) -> TokenStream
 {

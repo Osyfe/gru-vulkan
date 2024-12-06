@@ -66,19 +66,26 @@ impl<'a> CommandBuffer<'a>
     }
 
     #[inline]
-    pub fn submit(&self, queue: &Queue, wait: Option<&Semaphore>, signal: Option<&Semaphore>, mark: &Fence)
+    pub fn submit<const N: usize, const M: usize>(&self, queue: &Queue, wait: [&Semaphore; N], signal: [&Semaphore; M], mark: Option<&Fence>)
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::submit: Wrong queue family."); }
         let mut submit_info = vk::SubmitInfo::default().command_buffers(std::slice::from_ref(&self.command_buffer));
-        if let Some(wait) = wait
+        let wait = wait.map(|wait| wait.semaphore);
+        let wait_dst_stage_mask: [_; N] =
+            std::array::from_fn(|_| vk::PipelineStageFlags::VERTEX_INPUT | vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::COMPUTE_SHADER);
+        if N > 0
         {
             submit_info = submit_info
-                .wait_semaphores(std::slice::from_ref(&wait.semaphore))
-                .wait_dst_stage_mask(&[vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT]);
+                .wait_semaphores(&wait)
+                .wait_dst_stage_mask(&wait_dst_stage_mask);
         }
-        if let Some(signal) = signal { submit_info = submit_info.signal_semaphores(std::slice::from_ref(&signal.semaphore)); }
+        let signal = signal.map(|signal| signal.semaphore);
+        if M > 0
+        {
+            submit_info = submit_info.signal_semaphores(&signal);
+        }
         let submit_info = [submit_info];
-        unsafe { self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.fence) }.unwrap();
+        unsafe { self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.map(|mark| mark.fence).unwrap_or(vk::Fence::null())) }.unwrap();
     }
 }
 
@@ -89,6 +96,60 @@ pub struct CommandBufferRecord<'a, 'b>
             
 impl<'a, 'b> CommandBufferRecord<'a, 'b>
 {
+    #[inline]
+    pub fn bind_compute(&mut self, compute: &Compute) -> &mut Self
+    {
+        unsafe { self.buffer.pool.device.logical_device.cmd_bind_pipeline(self.buffer.command_buffer, vk::PipelineBindPoint::COMPUTE, compute.compute); }
+        self
+    }
+
+    #[inline]
+    fn bind_descriptor_sets_internal(&mut self, pipeline_layout: &PipelineLayout, descriptor_sets: &[&DescriptorSet], bind_point: vk::PipelineBindPoint) -> &mut Self
+    {
+        for set in descriptor_sets
+        {
+            unsafe
+            {
+                self.buffer.pool.device.logical_device.cmd_bind_descriptor_sets
+                (
+                    self.buffer.command_buffer,
+                    bind_point,
+                    pipeline_layout.layout,
+                    set.layout.set,
+                    &[set.descriptor_set],
+                    &[]
+                );
+            }
+        }
+        self
+    }
+
+    #[inline]
+    pub fn bind_descriptor_sets(&mut self, pipeline_layout: &PipelineLayout, descriptor_sets: &[&DescriptorSet]) -> &mut Self
+    {
+        self.bind_descriptor_sets_internal(pipeline_layout, descriptor_sets, vk::PipelineBindPoint::COMPUTE)
+    }
+
+    #[inline]
+    pub fn push_constant<T>(&mut self, pipeline_layout: &PipelineLayout, push_constant: &T) -> &mut Self
+    {
+        let (shader_stages, size) = pipeline_layout.push_constant.expect("CommandBufferRecord::push_constant: This layout has no push constant.");
+        if DEBUG_MODE && std::mem::size_of::<T>() as u32 != size { panic!("CommandBufferRecord::push_constant: Incompatible data size."); }
+        unsafe
+        {
+            let data = std::slice::from_raw_parts(push_constant as *const T as *const u8, std::mem::size_of::<T>());
+            self.buffer.pool.device.logical_device.cmd_push_constants(self.buffer.command_buffer, pipeline_layout.layout, shader_stages, 0, data);
+        }
+        self
+    }
+
+    #[inline]
+    pub fn dispatch(&mut self, group_counts: [u32; 3]) -> &mut Self
+    {
+        unsafe { self.buffer.pool.device.logical_device.cmd_dispatch(self.buffer.command_buffer, group_counts[0], group_counts[1], group_counts[2]); }
+        self
+    }
+
     #[inline]
     pub fn render_pass<'c>(&'c mut self, render_pass: &RenderPass, framebuffer: &Framebuffer) -> CommandBufferRecordRenderPass<'a, 'b, 'c>
     {
@@ -105,6 +166,7 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
         unsafe { self.buffer.pool.device.logical_device.cmd_begin_render_pass(self.buffer.command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE); }
         CommandBufferRecordRenderPass { record: self }
     }
+
     /*
     pub fn pipeline_barrier(&mut self, image: &Image) -> &mut Self
     {
@@ -208,34 +270,14 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
     #[inline]
     pub fn bind_descriptor_sets(&mut self, pipeline_layout: &PipelineLayout, descriptor_sets: &[&DescriptorSet]) -> &mut Self
     {
-        for set in descriptor_sets
-        {
-            unsafe
-            {
-                self.record.buffer.pool.device.logical_device.cmd_bind_descriptor_sets
-                (
-                    self.record.buffer.command_buffer,
-                    vk::PipelineBindPoint::GRAPHICS,
-                    pipeline_layout.layout,
-                    set.layout.set,
-                    &[set.descriptor_set],
-                    &[]
-                );
-            }
-        }
+        self.record.bind_descriptor_sets_internal(pipeline_layout, descriptor_sets, vk::PipelineBindPoint::GRAPHICS);
         self
     }
 
     #[inline]
     pub fn push_constant<T>(&mut self, pipeline_layout: &PipelineLayout, push_constant: &T) -> &mut Self
     {
-        let (shader_stages, size) = pipeline_layout.push_constant.expect("CommandBufferRecordRenderPass::push_constant: This layout has no push constant.");
-        if DEBUG_MODE && std::mem::size_of::<T>() as u32 != size { panic!("CommandBufferRecordRenderPass::push_constant: Incompatible data size."); }
-        unsafe
-        {
-            let data = std::slice::from_raw_parts(push_constant as *const T as *const u8, std::mem::size_of::<T>());
-            self.record.buffer.pool.device.logical_device.cmd_push_constants(self.record.buffer.command_buffer, pipeline_layout.layout, shader_stages, 0, data);
-        }
+        self.record.push_constant(pipeline_layout, push_constant);
         self
     }
 

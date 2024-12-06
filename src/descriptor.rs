@@ -7,8 +7,9 @@ impl Device
         let descriptor_set_layout_bindings: Vec<_> = bindings.iter().enumerate().map(|(id, binding)|
         {
             let stage_flags =
-                if binding.vertex { vk::ShaderStageFlags::VERTEX } else { vk::ShaderStageFlags::empty() }
-              | if binding.fragment { vk::ShaderStageFlags::FRAGMENT } else { vk::ShaderStageFlags::empty() };
+                if binding.visibility.compute { vk::ShaderStageFlags::COMPUTE } else { vk::ShaderStageFlags::empty() }
+              | if binding.visibility.vertex { vk::ShaderStageFlags::VERTEX } else { vk::ShaderStageFlags::empty() }
+              | if binding.visibility.fragment { vk::ShaderStageFlags::FRAGMENT } else { vk::ShaderStageFlags::empty() };
             vk::DescriptorSetLayoutBinding::default()
                 .binding(id as u32)
                 .descriptor_type(binding.vk_type())
@@ -22,17 +23,26 @@ impl Device
 
     pub fn new_descriptor_sets(&self, set_layouts: &[(&DescriptorSetLayout, u32)]) -> Vec<Vec<DescriptorSet>>
     {
-        let (mut set_count, mut struct_count, mut sampler_count, mut input_attachment_count) = (0, 0, 0, 0);
+        let (mut set_count, mut storage_count, mut struct_count, mut sampler_count, mut input_attachment_count) = (0, 0, 0, 0, 0);
         for (layout, count) in set_layouts
         {
             set_count += count;
-            let (a, b, c) = layout.0.type_count();
-            struct_count += count * a;
-            sampler_count += count * b;
-            input_attachment_count += count * c;
+            let (a, b, c, d) = layout.0.type_count();
+            storage_count += count * a;
+            struct_count += count * b;
+            sampler_count += count * c;
+            input_attachment_count += count * d;
         }
         
         let mut pool_sizes = vec![];
+        if storage_count > 0
+        {
+            pool_sizes.push(vk::DescriptorPoolSize
+            {
+                ty: vk::DescriptorType::STORAGE_BUFFER,
+                descriptor_count: storage_count,
+            })
+        };
         if struct_count > 0
         {
             pool_sizes.push(vk::DescriptorPoolSize
@@ -81,23 +91,63 @@ impl Device
     }
 }
 
+impl DescriptorVisibility
+{
+    pub fn compute() -> Self
+    {
+        Self { compute: true, vertex: false, fragment: false }
+    }
+
+    pub fn vertex() -> Self
+    {
+        Self { compute: false, vertex: true, fragment: false }
+    }
+
+    pub fn fragment() -> Self
+    {
+        Self { compute: false, vertex: false, fragment: true }
+    }
+
+    pub fn graphic_full() -> Self
+    {
+        Self { compute: false, vertex: true, fragment: true }
+    }
+}
+
 impl DescriptorBindingInfo
 {
-    pub fn from_struct<T: DescriptorStructReprC>(count: u32, vertex: bool, fragment: bool) -> Self
+    pub fn from_storage<T: StorageStructReprC>() -> Self
+    {
+        Self
+        {
+            ty: DescriptorBindingType::Storage,
+            count: 1,
+            visibility: DescriptorVisibility
+            {
+                compute: true,
+                vertex: false,
+                fragment: false
+            }
+        }
+    }
+
+    pub fn from_struct<T: DescriptorStructReprC>(count: u32, visibility: DescriptorVisibility) -> Self
     {
         Self
         {
             ty: DescriptorBindingType::Struct { size_in_bytes: std::mem::size_of::<T>() as u32 },
-            count, vertex, fragment
+            count,
+            visibility
         }
     }
 
-    pub fn from_sampler(image_channel_type: ImageChannelType, count: u32, vertex: bool, fragment: bool) -> Self
+    pub fn from_sampler(image_channel_type: ImageChannelType, count: u32, visibility: DescriptorVisibility) -> Self
     {
     	Self
     	{
             ty: DescriptorBindingType::Sampler { image_channel_type },
-    		count, vertex, fragment
+    		count,
+            visibility
     	}
     }
 
@@ -106,7 +156,13 @@ impl DescriptorBindingInfo
         Self
         {
             ty: DescriptorBindingType::SubpassInput { image_channel_type },
-            count: 1, vertex: false, fragment: true
+            count: 1,
+            visibility: DescriptorVisibility
+            {
+                compute: false,
+                vertex: false,
+                fragment: true
+            }
         }
     }
 
@@ -114,41 +170,73 @@ impl DescriptorBindingInfo
     {
         match self.ty
         {
+            DescriptorBindingType::Storage => vk::DescriptorType::STORAGE_BUFFER,
             DescriptorBindingType::Struct { .. } => vk::DescriptorType::UNIFORM_BUFFER,
             DescriptorBindingType::Sampler { .. } => vk::DescriptorType::COMBINED_IMAGE_SAMPLER,
             DescriptorBindingType::SubpassInput { .. } => vk::DescriptorType::INPUT_ATTACHMENT
         }
     }
 
-    fn type_count(&self) -> (u32, u32, u32)
+    fn type_count(&self) -> (u32, u32, u32, u32)
     {
         match self.ty
         {
-            DescriptorBindingType::Struct { .. } => (self.count, 0, 0),
-            DescriptorBindingType::Sampler { .. } => (0, self.count, 0),
-            DescriptorBindingType::SubpassInput { .. } => (0, 0, 1)
+            DescriptorBindingType::Storage => (1, 0, 0, 0),
+            DescriptorBindingType::Struct { .. } => (0, self.count, 0, 0),
+            DescriptorBindingType::Sampler { .. } => (0, 0, self.count, 0),
+            DescriptorBindingType::SubpassInput { .. } => (0, 0, 0, 1)
         }
     }
 }
 
 impl RawDescriptorSetLayout
 {
-    fn type_count(&self) -> (u32, u32, u32)
+    fn type_count(&self) -> (u32, u32, u32, u32)
     {
-        let (mut struct_count, mut sampler_count, mut input_attachment_count) = (0, 0, 0);
+        let (mut storage_count, mut struct_count, mut sampler_count, mut input_attachment_count) = (0, 0, 0, 0);
         for binding in self.bindings.iter()
         {
-            let (a, b, c) = binding.type_count();
-            struct_count += a;
-            sampler_count += b;
-            input_attachment_count += c;
+            let (a, b, c, d) = binding.type_count();
+            storage_count += a;
+            struct_count += b;
+            sampler_count += c;
+            input_attachment_count += d;
         }
-        (struct_count, sampler_count, input_attachment_count)
+        (storage_count, struct_count, sampler_count, input_attachment_count)
     }
 }
 
 impl DescriptorSet
 {
+    pub fn update_storage<T: StorageStructReprC>(&mut self, binding: u32, buffer: &Buffer, view: &BufferView<T>)
+    {
+        if DEBUG_MODE && view.layout_id != buffer.layout_id { panic!("DescriptorSet::update_storage: Incompatible BufferView"); }
+        let layout = &self.layout.bindings[binding as usize];
+        match layout.ty
+        {
+            DescriptorBindingType::Storage => {},
+        	DescriptorBindingType::Struct { .. } => panic!("DescriptorSet::update_storage: Incompatible DescriptorBindingType."),
+            DescriptorBindingType::Sampler { .. } => panic!("DescriptorSet::update_storage: Incompatible DescriptorBindingType."),
+            DescriptorBindingType::SubpassInput { .. } => panic!("DescriptorSet::update_storage: Incompatible DescriptorBindingType.")
+        };
+        let buffer_info = vk::DescriptorBufferInfo 
+        {
+            buffer: buffer.buffer,
+            offset: view.offset_in_bytes as u64,
+            range: (view.stride * view.count()) as u64,
+        };
+        let descriptor_sets_write =
+        [
+            vk::WriteDescriptorSet::default()
+                .dst_set(self.descriptor_set)
+                .dst_binding(binding)
+                .dst_array_element(0)
+                .descriptor_type(vk::DescriptorType::STORAGE_BUFFER)
+                .buffer_info(std::slice::from_ref(&buffer_info))
+        ];
+        unsafe { self.pool.device.logical_device.update_descriptor_sets(&descriptor_sets_write, &[]) };
+    }
+
     pub fn update_struct<T: DescriptorStructReprC>(&mut self, binding: u32, buffer: &Buffer, view: &BufferView<T>)
     {
         if DEBUG_MODE && view.layout_id != buffer.layout_id { panic!("DescriptorSet::update_struct: Incompatible BufferView"); }
@@ -156,6 +244,7 @@ impl DescriptorSet
         if view.count != layout.count { panic!("DescriptorSet::update_struct: Wrong amount of uniforms: {} vs {}.", view.count, layout.count); }
         match layout.ty
         {
+            DescriptorBindingType::Storage => panic!("DescriptorSet::update_struct: Incompatible DescriptorBindingType."),
         	DescriptorBindingType::Struct { size_in_bytes } => if std::mem::size_of::<T>() != size_in_bytes as usize { panic!("DescriptorSet::update_struct: Incompatible struct size."); },
             DescriptorBindingType::Sampler { .. } => panic!("DescriptorSet::update_struct: Incompatible DescriptorBindingType."),
             DescriptorBindingType::SubpassInput { .. } => panic!("DescriptorSet::update_struct: Incompatible DescriptorBindingType.")
@@ -184,6 +273,7 @@ impl DescriptorSet
         if images.len() as u32 != layout.count { panic!("DescriptorSet::update_sampler: Wrong amount of images: {} vs {}.", images.len(), layout.count); }
         match layout.ty
         {
+            DescriptorBindingType::Storage => panic!("DescriptorSet::update_sampler: Incompatible DescriptorBindingType."),
         	DescriptorBindingType::Struct { .. } => panic!("DescriptorSet::update_sampler: Incompatible DescriptorBindingType."),
             DescriptorBindingType::Sampler { image_channel_type } => for (i, image) in images.iter().enumerate()
             {
@@ -216,6 +306,7 @@ impl DescriptorSet
         let layout = &self.layout.bindings[binding as usize];
         match layout.ty
         {
+            DescriptorBindingType::Storage => panic!("DescriptorSet::update_input_attachment: Incompatible DescriptorBindingType."),
             DescriptorBindingType::Struct { .. } => panic!("DescriptorSet::update_input_attachment: Incompatible DescriptorBindingType."),
             DescriptorBindingType::Sampler { .. } => panic!("DescriptorSet::update_input_attachment: Incompatible DescriptorBindingType."),
             DescriptorBindingType::SubpassInput { image_channel_type } =>

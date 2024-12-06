@@ -288,7 +288,7 @@ impl QueueFamilyInfo
 {
     pub fn count(&self) -> u32 { self.queue_family_properties.queue_count }
     pub fn supports_graphics(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::GRAPHICS) }
-    //pub fn supports_compute(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::COMPUTE) }
+    pub fn supports_compute(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::COMPUTE) }
     pub fn supports_transfer(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::TRANSFER) }
     //pub fn supports_sparse_binding(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::SPARSE_BINDING) }
     pub fn supports_surface(&self) -> bool { self.surface_support }

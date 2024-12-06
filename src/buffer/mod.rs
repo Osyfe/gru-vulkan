@@ -16,7 +16,8 @@ impl Device
             uniform_align,
             indices: false,
             attributes: false,
-            uniforms: false
+            uniforms: false,
+            storage: false
         };
         BufferTypeBuilder(buffer_type)
     }
@@ -33,7 +34,8 @@ impl Device
         buffer_usage_flags |=
             if buffer_type.indices { vk::BufferUsageFlags::INDEX_BUFFER } else { vk::BufferUsageFlags::empty() }
           | if buffer_type.attributes { vk::BufferUsageFlags::VERTEX_BUFFER } else { vk::BufferUsageFlags::empty() }
-          | if buffer_type.uniforms { vk::BufferUsageFlags::UNIFORM_BUFFER } else { vk::BufferUsageFlags::empty() };
+          | if buffer_type.uniforms { vk::BufferUsageFlags::UNIFORM_BUFFER } else { vk::BufferUsageFlags::empty() }
+          | if buffer_type.storage { vk::BufferUsageFlags::STORAGE_BUFFER } else { vk::BufferUsageFlags::empty() };
         let buffer_create_info = vk::BufferCreateInfo::default()
             .size(buffer_type.offset_in_bytes)
             .usage(buffer_usage_flags);
@@ -102,6 +104,17 @@ impl BufferTypeBuilder
     {
         self.0.uniforms = true;
         self.add(count, self.0.uniform_align)
+    }
+
+    pub fn add_storage<T: StorageStructReprC>(&mut self, count: u32) -> BufferView<T>
+    {
+        self.0.storage = true;
+        self.add(count, std::mem::size_of::<T>() as u64)
+    }
+
+    pub fn set_storage(&mut self)
+    {
+        self.0.storage = true;
     }
 
     fn add<T>(&mut self, count: u32, align: u64) -> BufferView<T>
@@ -182,6 +195,13 @@ impl<'a> BufferMap<'a>
             let buffer_ptr = self.buffer_ptr.add(view.offset_in_bytes + offset * view.stride as usize);
             ash::util::Align::new(buffer_ptr as *mut std::ffi::c_void, view.stride as u64, (view.stride * data.len() as u32) as u64).copy_from_slice(data);
         }
+    }
+
+    #[inline]
+    pub fn write_storage<T: StorageStructReprC>(&mut self, view: &BufferView<T>, offset: usize, data: &[T])
+    {
+        self.check(view, offset, data.len());
+        self.write(view, offset, data);
     }
 
     #[inline(always)]

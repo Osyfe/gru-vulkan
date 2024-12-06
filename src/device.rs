@@ -9,7 +9,7 @@ impl QueueFamily
 
     pub fn count(&self) -> usize { self.queues.len() }
     pub fn supports_graphics(&self) -> bool { self.flags.contains(vk::QueueFlags::GRAPHICS) }
-    //pub fn supports_compute(&self) -> bool { self.flags.contains(vk::QueueFlags::COMPUTE) }
+    pub fn supports_compute(&self) -> bool { self.flags.contains(vk::QueueFlags::COMPUTE) }
     pub fn supports_transfer(&self) -> bool { self.flags.contains(vk::QueueFlags::TRANSFER) }
     //pub fn supports_sparse_binding(&self) -> bool { self.queue_family_properties.queue_flags.contains(vk::QueueFlags::SPARSE_BINDING) }
     pub fn supports_surface(&self) -> bool { self.surface_support }
@@ -40,6 +40,16 @@ impl Device
         if signaled { fence_create_info = fence_create_info.flags(vk::FenceCreateFlags::SIGNALED) };
         let fence = unsafe { self.0.logical_device.create_fence(&fence_create_info, None) }.unwrap();
         Fence { device: self.0.clone(), fence }
+    }
+}
+
+impl Semaphore
+{
+    pub fn signal(&self, queue: &Queue)
+    {
+        let submit_info = vk::SubmitInfo::default()
+            .signal_semaphores(std::slice::from_ref(&self.semaphore));
+        unsafe { self.device.logical_device.queue_submit(queue.queue, std::slice::from_ref(&submit_info), vk::Fence::null()) }.unwrap();
     }
 }
 
