@@ -79,7 +79,7 @@ unsafe extern "system" fn vulkan_debug_utils_callback
     let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
     let severity = format!("{:?}", message_severity).to_lowercase();
     let ty = format!("{:?}", message_type).to_lowercase();
-    println!("[Debug][{}][{}] {:?}", severity, ty, message);
+    println!("[vk][{}][{}] {:?}", severity, ty, message);
     vk::FALSE
 }
 
@@ -183,7 +183,7 @@ impl Instance
     
     pub fn logical_device<'a, A: AsRef<[f32]>, B: AsRef<[(&'a QueueFamilyInfo, A)]>>(self, physical_device: &PhysicalDevice, queues: B) -> Device
     {
-        let PhysicalDevice { physical_device, physical_device_properties: _, queue_family_properties } = physical_device;
+        let PhysicalDevice { physical_device, physical_device_properties, queue_family_properties } = physical_device;
         let queue_infos = &queues.as_ref().iter().map(|(queue_family_info, priorities)|
         {
             let priorities = priorities.as_ref();
@@ -265,6 +265,7 @@ impl Instance
         {
             instance: self,
             physical_device: *physical_device,
+            min_uniform_buffer_offset_alignment: physical_device_properties.limits.min_uniform_buffer_offset_alignment,
             logical_device,
             allocator: Some(Mutex::new(allocator)),
             queue_families,

@@ -82,6 +82,7 @@ struct RawDevice
 {
     instance: Instance,
     physical_device: vk::PhysicalDevice,
+    min_uniform_buffer_offset_alignment: u64,
     logical_device: ash::Device,
     allocator: Option<Mutex<alloc::Allocator>>,
     queue_families: Box<[QueueFamily]>,

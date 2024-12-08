@@ -8,12 +8,11 @@ impl Device
     pub fn new_buffer_type(&self) -> BufferTypeBuilder
     {
         let id = self.0.buffer_layout_count.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let uniform_align = unsafe { self.0.instance.instance.get_physical_device_properties(self.0.physical_device).limits.min_uniform_buffer_offset_alignment };
         let buffer_type = BufferType
         {
             id,
             offset_in_bytes: 0,
-            uniform_align,
+            uniform_align: self.0.min_uniform_buffer_offset_alignment,
             indices: false,
             attributes: false,
             uniforms: false,
