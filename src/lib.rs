@@ -12,7 +12,6 @@ mod pipeline;
 mod buffer;
 mod image;
 mod descriptor;
-mod compute;
 mod command;
 pub use instance::*;
 pub use swapchain::*;
@@ -22,7 +21,6 @@ pub use pipeline::*;
 pub use buffer::*;
 pub use image::*;
 //pub use descriptor::*;
-//pub use compute::*;
 pub use command::*;
 
 use std::marker::PhantomData;
@@ -406,10 +404,20 @@ pub struct CommandBuffer<'a>
     command_buffer: vk::CommandBuffer
 }
 
+#[derive(Clone, Copy)]
+pub enum WaitStage
+{
+    None,
+    VertexInput,
+    ColorOutput,
+    Compute
+}
+
 pub struct Semaphore
 {
     device: Arc<RawDevice>,
-    semaphore: vk::Semaphore
+    semaphore: vk::Semaphore,
+    wait_stage: vk::PipelineStageFlags
 }
 
 pub struct Fence

@@ -265,6 +265,56 @@ impl<'a> CommandBuffer<'a>
     }
 }
 
+impl<'a, 'b> CommandBufferRecord<'a, 'b>
+{
+    pub fn copy_view<T>(&self, src_buf: &Buffer, src_view: &BufferView<T>, dst_buf: &Buffer, dst_view: &BufferView<T>, usage: CopyViewUsage, stage: WaitStage)
+    {
+        if DEBUG_MODE && src_buf.buffer_usage != BufferUsage::Stage { panic!("CommandBuffer::copy_view: Source buffer has not stage memory type."); }
+        if DEBUG_MODE && dst_buf.buffer_usage != BufferUsage::Static { panic!("CommandBuffer::copy_view: Destination buffer has not static memory type."); }
+        if DEBUG_MODE && src_buf.layout_id != src_view.layout_id { panic!("CommandBuffer::copy_view: Source buffer and view are not compatible."); }
+        if DEBUG_MODE && dst_buf.layout_id != dst_view.layout_id { panic!("CommandBuffer::copy_view: Destination buffer and view are not compatible."); }
+        if DEBUG_MODE && src_view.count != dst_view.count { panic!("CommandBuffer::copy_view: Source and destination views have different counts."); }
+
+        let size = std::mem::size_of::<T>() as u64 * src_view.count as u64;
+        let buffer_copy = vk::BufferCopy
+        {
+            src_offset: src_view.offset_in_bytes as u64,
+            dst_offset: dst_view.offset_in_bytes as u64,
+            size
+        };
+        let memory_barrier = vk::BufferMemoryBarrier::default()
+            .src_access_mask(vk::AccessFlags::TRANSFER_WRITE)
+            .dst_access_mask(usage.vk_access_flags())
+            .src_queue_family_index(self.buffer.pool.queue_family_index as u32)
+            .dst_queue_family_index(self.buffer.pool.queue_family_index as u32)
+            .buffer(dst_buf.buffer)
+            .offset(dst_view.offset_in_bytes as u64)
+            .size(size);
+        unsafe
+        {
+            self.buffer.pool.device.logical_device.cmd_copy_buffer(self.buffer.command_buffer, src_buf.buffer, dst_buf.buffer, &[buffer_copy]);
+            self.buffer.pool.device.logical_device.cmd_pipeline_barrier(self.buffer.command_buffer, vk::PipelineStageFlags::TRANSFER, stage.vk_mask(), vk::DependencyFlags::empty(), &[], &[memory_barrier], &[]);
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+pub enum CopyViewUsage
+{
+    Uniform
+}
+
+impl CopyViewUsage
+{
+    fn vk_access_flags(self) -> vk::AccessFlags
+    {
+        match self
+        {
+            Self::Uniform => vk::AccessFlags::UNIFORM_READ
+        }
+    }
+}
+
 impl<'a> IndexBinding<'a>
 {
     #[inline]

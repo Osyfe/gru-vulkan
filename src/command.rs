@@ -70,13 +70,12 @@ impl<'a> CommandBuffer<'a>
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::submit: Wrong queue family."); }
         let mut submit_info = vk::SubmitInfo::default().command_buffers(std::slice::from_ref(&self.command_buffer));
-        let wait = wait.map(|wait| wait.semaphore);
-        let wait_dst_stage_mask: [_; N] =
-            std::array::from_fn(|_| vk::PipelineStageFlags::VERTEX_INPUT | vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT | vk::PipelineStageFlags::COMPUTE_SHADER);
+        let wait_semaphores = wait.map(|wait| wait.semaphore);
+        let wait_dst_stage_mask = wait.map(|wait| wait.wait_stage);
         if N > 0
         {
             submit_info = submit_info
-                .wait_semaphores(&wait)
+                .wait_semaphores(&wait_semaphores)
                 .wait_dst_stage_mask(&wait_dst_stage_mask);
         }
         let signal = signal.map(|signal| signal.semaphore);
@@ -91,7 +90,7 @@ impl<'a> CommandBuffer<'a>
 
 pub struct CommandBufferRecord<'a, 'b>
 {
-    buffer: &'b mut CommandBuffer<'a>
+    pub(crate) buffer: &'b mut CommandBuffer<'a>
 }
             
 impl<'a, 'b> CommandBufferRecord<'a, 'b>
