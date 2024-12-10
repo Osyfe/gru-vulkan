@@ -12,7 +12,8 @@ impl Device
         {
             id,
             offset_in_bytes: 0,
-            uniform_align: self.0.min_uniform_buffer_offset_alignment,
+            uniform_align: self.0.props.min_uniform_buffer_offset_alignment,
+            storage_align: self.0.props.min_storage_buffer_offset_alignment,
             indices: false,
             attributes: false,
             uniforms: false,
@@ -30,11 +31,14 @@ impl Device
             BufferUsage::Dynamic => (gpu_allocator::MemoryLocation::CpuToGpu, vk::BufferUsageFlags::empty()),
             BufferUsage::Static => (gpu_allocator::MemoryLocation::GpuOnly, vk::BufferUsageFlags::TRANSFER_DST)
         };
-        buffer_usage_flags |=
-            if buffer_type.indices { vk::BufferUsageFlags::INDEX_BUFFER } else { vk::BufferUsageFlags::empty() }
-          | if buffer_type.attributes { vk::BufferUsageFlags::VERTEX_BUFFER } else { vk::BufferUsageFlags::empty() }
-          | if buffer_type.uniforms { vk::BufferUsageFlags::UNIFORM_BUFFER } else { vk::BufferUsageFlags::empty() }
-          | if buffer_type.storage { vk::BufferUsageFlags::STORAGE_BUFFER } else { vk::BufferUsageFlags::empty() };
+        if buffer_usage != BufferUsage::Stage
+        {
+            buffer_usage_flags |=
+                if buffer_type.indices { vk::BufferUsageFlags::INDEX_BUFFER } else { vk::BufferUsageFlags::empty() }
+            | if buffer_type.attributes { vk::BufferUsageFlags::VERTEX_BUFFER } else { vk::BufferUsageFlags::empty() }
+            | if buffer_type.uniforms { vk::BufferUsageFlags::UNIFORM_BUFFER } else { vk::BufferUsageFlags::empty() }
+            | if buffer_type.storage { vk::BufferUsageFlags::STORAGE_BUFFER } else { vk::BufferUsageFlags::empty() };
+        }
         let buffer_create_info = vk::BufferCreateInfo::default()
             .size(buffer_type.offset_in_bytes)
             .usage(buffer_usage_flags);
@@ -87,42 +91,60 @@ impl<T> BufferView<T>
 
 impl BufferTypeBuilder
 {
-    pub fn add_indices<T: IndexType>(&mut self, count: u32) -> BufferView<T>
+    pub fn add_indices<T: IndexType>(&mut self, count: u32) -> BufferView<T> { self.add_indices_internal(count, false) }
+    pub fn add_attributes<T: AttributeGroupReprCpacked>(&mut self, count: u32) -> BufferView<T> { self.add_attributes_internal(count, false) }
+    pub fn add_uniforms<T: DescriptorStructReprC>(&mut self, count: u32) -> BufferView<T> { self.add_uniforms_internal(count, false) }
+    pub fn add_indices_storage<T: IndexType + StorageStructReprC>(&mut self, count: u32) -> BufferView<T> { self.add_indices_internal(count, true) }
+    pub fn add_attributes_storage<T: AttributeGroupReprCpacked + StorageStructReprC>(&mut self, count: u32) -> BufferView<T> { self.add_attributes_internal(count, true) }
+    pub fn add_uniforms_storage<T: DescriptorStructReprC + StorageStructReprC>(&mut self, count: u32) -> BufferView<T> { self.add_uniforms_internal(count, true) }
+    pub fn add_storage<T: StorageStructReprC>(&mut self, count: u32) -> BufferView<T> { self.add(count, 1, 1, true) } //add does offset_alignment
+
+    fn ggt(mut a: u64, mut b: u64) -> u64
+    {
+        if a == 0 { return b; }
+        while b != 0
+        {
+            if a > b { a = a - b; }
+            else { b = b - a; }
+        }
+        a
+    }
+
+    fn kgv(a: u64, b: u64) -> u64
+    {
+        a * b / Self::ggt(a, b)
+    }
+    
+    fn add_indices_internal<T: IndexType>(&mut self, count: u32, storage: bool) -> BufferView<T>
     {
         self.0.indices = true;
-        self.add(count, std::mem::size_of::<T>() as u64)
+        self.add(count, std::mem::size_of::<T>() as u64, 1, storage)
     }
 
-    pub fn add_attributes<T: AttributeGroupReprCpacked>(&mut self, count: u32) -> BufferView<T>
+    fn add_attributes_internal<T: AttributeGroupReprCpacked>(&mut self, count: u32, storage: bool) -> BufferView<T>
     {
         self.0.attributes = true;
-        self.add(count, 1)
+        self.add(count, 1, 1, storage)
     }
 
-    pub fn add_uniforms<T: DescriptorStructReprC>(&mut self, count: u32) -> BufferView<T>
+    fn add_uniforms_internal<T: DescriptorStructReprC>(&mut self, count: u32, storage: bool) -> BufferView<T>
     {
         self.0.uniforms = true;
-        self.add(count, self.0.uniform_align)
+        self.add(count, self.0.uniform_align, self.0.uniform_align, storage) //stride_align because multiple uniforms -> uniform array with offset_align for everyone
     }
 
-    pub fn add_storage<T: StorageStructReprC>(&mut self, count: u32) -> BufferView<T>
+    fn add<T>(&mut self, count: u32, mut offset_align: u64, stride_align: u64, storage: bool) -> BufferView<T>
     {
-        self.0.storage = true;
-        self.add(count, std::mem::size_of::<T>() as u64)
-    }
-
-    pub fn set_storage(&mut self)
-    {
-        self.0.storage = true;
-    }
-
-    fn add<T>(&mut self, count: u32, align: u64) -> BufferView<T>
-    {
+        if storage
+        {
+            self.0.storage = true;
+            offset_align = Self::kgv(offset_align, self.0.storage_align);
+        }
         //if count == 0 { panic!("BufferLayout::add: No empty data permitted."); }
-        let offset_overflow = self.0.offset_in_bytes % align;
-        self.0.offset_in_bytes += if offset_overflow == 0 { 0 } else { align - offset_overflow };
+        let offset_overflow = self.0.offset_in_bytes % offset_align;
+        self.0.offset_in_bytes += if offset_overflow == 0 { 0 } else { offset_align - offset_overflow };
         let begin_offset_in_bytes = self.0.offset_in_bytes;
-        let stride = (std::mem::size_of::<T>() as u64 / align + (if std::mem::size_of::<T>() as u64 % align == 0 { 0 } else { 1 })) * align;
+        let stride = (std::mem::size_of::<T>() as u64 / stride_align + (if std::mem::size_of::<T>() as u64 % stride_align == 0 { 0 } else { 1 })) * stride_align;
         self.0.offset_in_bytes += count as u64 * stride;
         BufferView
         {

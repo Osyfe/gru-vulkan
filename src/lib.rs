@@ -1,3 +1,5 @@
+#![feature(iter_intersperse)]
+
 #[cfg(feature = "serde")]
 use serde::{Serialize, Deserialize};
 
@@ -13,6 +15,7 @@ mod buffer;
 mod image;
 mod descriptor;
 mod command;
+mod debug;
 pub use instance::*;
 pub use swapchain::*;
 //pub use device::*;
@@ -22,6 +25,7 @@ pub use buffer::*;
 pub use image::*;
 //pub use descriptor::*;
 pub use command::*;
+pub use debug::*;
 
 use std::marker::PhantomData;
 use std::sync::{Arc, Mutex};
@@ -78,11 +82,18 @@ pub struct QueueFamily
     surface_support: bool
 }
 
+struct Props
+{
+    min_uniform_buffer_offset_alignment: u64,
+    min_storage_buffer_offset_alignment: u64
+}
+
 struct RawDevice
 {
     instance: Instance,
+    debug_utils: Option<ash::ext::debug_utils::Device>,
     physical_device: vk::PhysicalDevice,
-    min_uniform_buffer_offset_alignment: u64,
+    props: Props,
     logical_device: ash::Device,
     allocator: Option<Mutex<alloc::Allocator>>,
     queue_families: Box<[QueueFamily]>,
@@ -157,6 +168,7 @@ pub struct BufferType
     id: u32,
     offset_in_bytes: u64,
     uniform_align: u64,
+    storage_align: u64,
     indices: bool,
     attributes: bool,
     uniforms: bool,

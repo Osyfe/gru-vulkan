@@ -76,10 +76,18 @@ unsafe extern "system" fn vulkan_debug_utils_callback
     _p_user_data: *mut std::ffi::c_void,
 ) -> vk::Bool32
 {
+    let names: String = std::slice::from_raw_parts((*p_callback_data).p_objects, (*p_callback_data).object_count as usize)
+        .iter()
+        .flat_map(|obj|
+            if obj.p_object_name.is_null() { None }
+            else { Some(std::ffi::CStr::from_ptr(obj.p_object_name).to_str().unwrap()) }
+        )
+        .intersperse(", ")
+        .collect();
     let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
     let severity = format!("{:?}", message_severity).to_lowercase();
     let ty = format!("{:?}", message_type).to_lowercase();
-    println!("[vk][{}][{}] {:?}", severity, ty, message);
+    println!("[{names}][{}][{}] {:?}", severity, ty, message);
     vk::FALSE
 }
 
@@ -123,13 +131,13 @@ impl Instance
                 (
                     vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
                   | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-                  //| vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+                  | vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
                   //| vk::DebugUtilsMessageSeverityFlagsEXT::INFO
                 ).message_type
                 (
-                    vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
-                  | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
-                  | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
+                    vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
+                    //| vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
+                    //| vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
                 ).pfn_user_callback(Some(vulkan_debug_utils_callback));
             let instance_create_info = instance_create_info.push_next(&mut debug_create_info);
             let instance = unsafe { entry.create_instance(&instance_create_info, None).unwrap() };
@@ -184,6 +192,13 @@ impl Instance
     pub fn logical_device<'a, A: AsRef<[f32]>, B: AsRef<[(&'a QueueFamilyInfo, A)]>>(self, physical_device: &PhysicalDevice, queues: B) -> Device
     {
         let PhysicalDevice { physical_device, physical_device_properties, queue_family_properties } = physical_device;
+        let props = Props
+        {
+            min_uniform_buffer_offset_alignment: physical_device_properties.limits.min_uniform_buffer_offset_alignment,
+            min_storage_buffer_offset_alignment: physical_device_properties.limits.min_storage_buffer_offset_alignment
+        };
+        
+
         let queue_infos = &queues.as_ref().iter().map(|(queue_family_info, priorities)|
         {
             let priorities = priorities.as_ref();
@@ -261,11 +276,16 @@ impl Instance
         };
         let allocator = alloc::Allocator::new(&allocator_create_desc).unwrap();
 
+        let debug_utils =
+            if DEBUG_MODE { Some(ash::ext::debug_utils::Device::new(&self.instance, &logical_device)) }
+            else { None };
+
         Device(Arc::new(RawDevice
         {
             instance: self,
+            debug_utils,
             physical_device: *physical_device,
-            min_uniform_buffer_offset_alignment: physical_device_properties.limits.min_uniform_buffer_offset_alignment,
+            props,
             logical_device,
             allocator: Some(Mutex::new(allocator)),
             queue_families,

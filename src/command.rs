@@ -69,7 +69,8 @@ impl<'a> CommandBuffer<'a>
     pub fn submit<const N: usize, const M: usize>(&self, queue: &Queue, wait: [&Semaphore; N], signal: [&Semaphore; M], mark: Option<&Fence>)
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::submit: Wrong queue family."); }
-        let mut submit_info = vk::SubmitInfo::default().command_buffers(std::slice::from_ref(&self.command_buffer));
+        let mut submit_info = vk::SubmitInfo::default()
+            .command_buffers(std::slice::from_ref(&self.command_buffer));
         let wait_semaphores = wait.map(|wait| wait.semaphore);
         let wait_dst_stage_mask = wait.map(|wait| wait.wait_stage);
         if N > 0
@@ -84,7 +85,8 @@ impl<'a> CommandBuffer<'a>
             submit_info = submit_info.signal_semaphores(&signal);
         }
         let submit_info = [submit_info];
-        unsafe { self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, mark.map(|mark| mark.fence).unwrap_or(vk::Fence::null())) }.unwrap();
+        let fence = mark.map(|mark| mark.fence).unwrap_or(vk::Fence::null());
+        unsafe { self.pool.device.logical_device.queue_submit(queue.queue, &submit_info, fence) }.unwrap();
     }
 }
 
@@ -215,7 +217,7 @@ impl Drop for CommandBufferRecord<'_, '_>
 
 pub struct CommandBufferRecordRenderPass<'a, 'b, 'c>
 {
-    record: &'c mut CommandBufferRecord<'a, 'b>
+    pub(crate) record: &'c mut CommandBufferRecord<'a, 'b>
 }
 
 impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>

@@ -72,16 +72,8 @@ impl Swapchain
     #[inline]
     pub fn acquire_next_image(&self, signal: Option<&Semaphore>, mark: Option<&Fence>) -> Result<SwapchainObjectIndex, ()>
     {
-        let semaphore = match signal
-        {
-            Some(semaphore) => semaphore.semaphore,
-            None => vk::Semaphore::null()
-        };
-        let fence = match mark
-        {
-            Some(fence) => fence.fence,
-            None => vk::Fence::null()
-        };
+        let semaphore = signal.map(|semaphore| semaphore.semaphore).unwrap_or(vk::Semaphore::null());
+        let fence = mark.map(|mark| mark.fence).unwrap_or(vk::Fence::null());
         match unsafe { self.swapchain_loader.acquire_next_image(self.swapchain, std::u64::MAX, semaphore, fence) }
         {
             Ok((image_index, suboptimal)) => if !suboptimal { Ok(SwapchainObjectIndex { index: image_index as usize }) } else { Err(()) },
@@ -90,14 +82,14 @@ impl Swapchain
     }
 
     #[inline]
-    pub fn present(&self, index: SwapchainObjectIndex, queue: &Queue, wait: &Semaphore) -> bool
+    pub fn present<const N: usize>(&self, index: SwapchainObjectIndex, queue: &Queue, wait: [&Semaphore; N]) -> bool
     {
         self.cycle_index.set((self.cycle_index.get() + 1) % self.count);
-        let semaphores = &[wait.semaphore];
+        let semaphores = wait.map(|semaphore| semaphore.semaphore);
         let swapchains = &[self.swapchain];
         let image_indices = &[index.index as u32];
         let present_info = vk::PresentInfoKHR::default()
-            .wait_semaphores(semaphores)
+            .wait_semaphores(&semaphores)
             .swapchains(swapchains)
             .image_indices(image_indices);
         unsafe { self.swapchain_loader.queue_present(queue.queue, &present_info) }.ok().is_some()
