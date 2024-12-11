@@ -9,7 +9,6 @@ fn layer_name_pointers(entry: &ash::Entry) -> (Vec<std::ffi::CString>, Vec<*cons
         vec!
         [
             std::ffi::CString::from(c"VK_LAYER_KHRONOS_validation"),
-            //std::ffi::CString::from(c"VK_LAYER_LUNARG_api_dump"),
             std::ffi::CString::from(c"VK_LAYER_LUNARG_monitor")
         ]
     } else { vec![] };

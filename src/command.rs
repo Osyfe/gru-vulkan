@@ -167,13 +167,12 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
         unsafe { self.buffer.pool.device.logical_device.cmd_begin_render_pass(self.buffer.command_buffer, &render_pass_begin_info, vk::SubpassContents::INLINE); }
         CommandBufferRecordRenderPass { record: self }
     }
-
-    /*
+/*
     pub fn pipeline_barrier(&mut self, image: &Image) -> &mut Self
     {
-        if DEBUG_MODE { if let ImageUsage::Attachment { depth: _, sampled: false } = image.image_usage { panic!("CommandBufferRecord::pipeline_barrier: This attachment cannot be sampled."); } }
+        if DEBUG_MODE { if let ImageUsage::Attachment { texture: false, .. } = image.image_usage { panic!("CommandBufferRecord::pipeline_barrier: This attachment cannot be sampled."); } }
         let depth = image.image_usage.depth();
-        let barrier = vk::ImageMemoryBarrier::builder()
+        let barrier = vk::ImageMemoryBarrier::default()
             .image(image.image)
             .src_access_mask(if depth { vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE } else { vk::AccessFlags::COLOR_ATTACHMENT_WRITE })
             .dst_access_mask(vk::AccessFlags::SHADER_READ)

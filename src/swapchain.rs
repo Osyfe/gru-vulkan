@@ -121,7 +121,7 @@ impl Swapchain
 
 pub struct SwapchainObjectIndex
 {
-    index: usize
+    pub(crate) index: usize
 }
 
 pub struct SwapchainObjects<T>

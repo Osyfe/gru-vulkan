@@ -185,6 +185,48 @@ impl Device
         }).collect();
         //dependencies
         let mut subpass_dependencies = vec![];
+        //external dependencies
+        for attachment in color_attachments
+        {
+            match attachment
+            {
+                RenderPassColorAttachment::Swapchain(_) =>
+                {
+                    subpass_dependencies.push(vk::SubpassDependency::default()
+                        .src_subpass(vk::SUBPASS_EXTERNAL)
+                        .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                        .src_access_mask(vk::AccessFlags::empty())
+                        .dst_subpass(0)
+                        .dst_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                        .dst_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                        .dependency_flags(vk::DependencyFlags::BY_REGION));
+                },
+                RenderPassColorAttachment::Image { store: AttachmentStore::Store, .. } =>
+                {
+                    subpass_dependencies.push(vk::SubpassDependency::default()
+                        .src_subpass(subpasses.len() as u32 - 1)
+                        .src_stage_mask(vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+                        .src_access_mask(vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+                        .dst_subpass(vk::SUBPASS_EXTERNAL)
+                        .dst_stage_mask(vk::PipelineStageFlags::VERTEX_SHADER | vk::PipelineStageFlags::FRAGMENT_SHADER)
+                        .dst_access_mask(vk::AccessFlags::SHADER_READ)
+                        .dependency_flags(vk::DependencyFlags::BY_REGION));
+                },
+                _ =>{}
+            }
+        }
+        if let Some(RenderPassDepthAttachment { store: AttachmentStore::Store, .. }) = depth_attachment
+        {
+            subpass_dependencies.push(vk::SubpassDependency::default()
+                .src_subpass(subpasses.len() as u32 - 1)
+                .src_stage_mask(vk::PipelineStageFlags::LATE_FRAGMENT_TESTS)
+                .src_access_mask(vk::AccessFlags::DEPTH_STENCIL_ATTACHMENT_WRITE)
+                .dst_subpass(vk::SUBPASS_EXTERNAL)
+                .dst_stage_mask(vk::PipelineStageFlags::VERTEX_SHADER | vk::PipelineStageFlags::FRAGMENT_SHADER)
+                .dst_access_mask(vk::AccessFlags::SHADER_READ)
+                .dependency_flags(vk::DependencyFlags::BY_REGION));
+        }
+        //internal dependencies
         for (input_index, input) in all_input_references.iter().enumerate()
         {
             for (output_index, output) in all_output_references.iter().enumerate()
@@ -203,23 +245,6 @@ impl Device
                 }
             }
         }
-        /* SaschaWillems shadow map example
-        dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[0].dstSubpass = 0;
-        dependencies[0].srcStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[0].dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-        dependencies[0].srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[0].dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependencies[0].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-
-        dependencies[1].srcSubpass = 0;
-        dependencies[1].dstSubpass = VK_SUBPASS_EXTERNAL;
-        dependencies[1].srcStageMask = VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-        dependencies[1].dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-        dependencies[1].srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-        dependencies[1].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        dependencies[1].dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT;
-        */
         //render pass
         let render_pass_info = vk::RenderPassCreateInfo::default()
             .attachments(&attachments)

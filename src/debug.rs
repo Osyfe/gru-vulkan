@@ -1,9 +1,18 @@
 use super::*;
 
+impl Swapchain
+{
+    #[inline]
+    pub fn debug_get_indices(&self, index: &SwapchainObjectIndex) -> (usize, usize)
+    {
+        (index.index, self.cycle_index.get())
+    }
+}
+
 impl<'a, 'b> CommandBufferRecord<'a, 'b>
 {
     #[inline]
-    pub fn insert_debug_label(&mut self, label: &str) -> &mut Self
+    pub fn debug_insert_label(&mut self, label: &str) -> &mut Self
     {
         #[cfg(debug_assertions)]
         if let Some(debug_utils) = &self.buffer.pool.device.debug_utils
@@ -21,21 +30,22 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
 impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
 {
     #[inline]
-    pub fn insert_debug_label(&mut self, label: &str) -> &mut Self
+    pub fn debug_insert_label(&mut self, label: &str) -> &mut Self
     {
-        self.record.insert_debug_label(label);
+        self.record.debug_insert_label(label);
         self
     }
 }
 
-pub trait NameableObject: Sized
+trait NameableObject: Sized
 {
     type Handle: vk::Handle;
     fn vk_handle(&self) -> Self::Handle;
-    fn named(self, device: &Device, name: &str) -> Self
+    fn device(&self) -> &RawDevice;
+    fn debug_named(self, name: &str) -> Self
     {
         #[cfg(debug_assertions)]
-        if let Some(debug_utils) = &device.0.debug_utils
+        if let Some(debug_utils) = &self.device().debug_utils
         {
             let cstr = std::ffi::CString::new(name).unwrap();
             let name = vk::DebugUtilsObjectNameInfoEXT::default()
@@ -49,23 +59,29 @@ pub trait NameableObject: Sized
 
 macro_rules! impl_nameable
 {
-    ($ty: ident $(<$($lt: lifetime),+>)?, $handle: ty, $field: ident) =>
+    ($ty: ident $(<$($lt: lifetime),+>)?, $handle: ty, $field: ident, $($device: tt).+) =>
     {
         impl$(<$($lt),+>)? NameableObject for $ty$(<$($lt),+>)?
         {
             type Handle = $handle;
-            fn vk_handle(&self) -> Self::Handle
+            fn vk_handle(&self) -> Self::Handle { self.$field }
+            fn device(&self) -> &RawDevice { &self.$($device).+ }
+        }
+
+        impl$(<$($lt),+>)? $ty$(<$($lt),+>)?
+        {
+            pub fn debug_named(self, name: &str) -> Self
             {
-                self.$field
+                <Self as NameableObject>::debug_named(self, name)
             }
         }
     };
 }
 
-impl_nameable!(Buffer, vk::Buffer, buffer);
-impl_nameable!(Image, vk::Image, image);
-impl_nameable!(DescriptorSet, vk::DescriptorSet, descriptor_set);
-impl_nameable!(RenderPass, vk::RenderPass, render_pass);
-impl_nameable!(Pipeline, vk::Pipeline, pipeline);
-impl_nameable!(Compute, vk::Pipeline, compute);
-impl_nameable!(CommandBuffer<'a>, vk::CommandBuffer, command_buffer);
+impl_nameable!(Buffer, vk::Buffer, buffer, device);
+impl_nameable!(Image, vk::Image, image, device);
+impl_nameable!(DescriptorSet, vk::DescriptorSet, descriptor_set, pool.device);
+impl_nameable!(RenderPass, vk::RenderPass, render_pass, device);
+impl_nameable!(Pipeline, vk::Pipeline, pipeline, device);
+impl_nameable!(Compute, vk::Pipeline, compute, device);
+impl_nameable!(CommandBuffer<'a>, vk::CommandBuffer, command_buffer, pool.device);
