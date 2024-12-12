@@ -1,5 +1,70 @@
 use super::*;
 
+//the debug callback
+unsafe extern "system" fn vulkan_debug_utils_callback
+(
+    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
+    message_type: vk::DebugUtilsMessageTypeFlagsEXT,
+    p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
+    _p_user_data: *mut std::ffi::c_void,
+) -> vk::Bool32
+{
+    /*
+    let names: String = std::slice::from_raw_parts((*p_callback_data).p_objects, (*p_callback_data).object_count as usize)
+        .iter()
+        .flat_map(|obj|
+            if obj.p_object_name.is_null() { None }
+            else { Some(std::ffi::CStr::from_ptr(obj.p_object_name).to_str().unwrap()) }
+        )
+        .intersperse(", ")
+        .collect();
+    */
+    let ty = format!("{:?}", message_type).to_lowercase();
+    let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
+
+    #[cfg(feature = "log")]
+    {
+        let level =
+            if message_severity.contains(vk::DebugUtilsMessageSeverityFlagsEXT::ERROR) { log::Level::Error }
+            else if message_severity.contains(vk::DebugUtilsMessageSeverityFlagsEXT::WARNING) { log::Level::Warn }
+            else if message_severity.contains(vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE) { log::Level::Debug }
+            else { log::Level::Trace };
+        log::log!(level, "[{ty}] {message:?}");
+    }
+    
+    #[cfg(not(feature = "log"))]
+    {
+        let severity = format!("{:?}", message_severity).to_lowercase();
+        println!("[{}][{}] {:?}", severity, ty, message);
+    }
+
+    vk::FALSE
+}
+
+pub(crate) fn create_instance(entry: &ash::Entry, instance_create_info: vk::InstanceCreateInfo) -> (ash::Instance, (ash::ext::debug_utils::Instance, vk::DebugUtilsMessengerEXT))
+{
+    let mut debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT::default()
+        .message_severity
+        (
+            vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
+          | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
+          | vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+          | vk::DebugUtilsMessageSeverityFlagsEXT::INFO
+        ).message_type
+        (
+            vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
+          | vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
+          | vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
+        ).pfn_user_callback(Some(vulkan_debug_utils_callback));
+    let instance_create_info = instance_create_info.push_next(&mut debug_create_info);
+    let instance = unsafe { entry.create_instance(&instance_create_info, None).unwrap() };
+
+    let debug_utils = ash::ext::debug_utils::Instance::new(&entry, &instance);
+    let debug_utils_messenger = unsafe { debug_utils.create_debug_utils_messenger(&debug_create_info, None).unwrap() };
+    let debug_utils = (debug_utils, debug_utils_messenger);
+    (instance, debug_utils)
+}
+
 impl Swapchain
 {
     #[inline]

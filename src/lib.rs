@@ -1,5 +1,3 @@
-#![feature(iter_intersperse)]
-
 #[cfg(feature = "serde")]
 use serde::{Serialize, Deserialize};
 

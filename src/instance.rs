@@ -4,14 +4,9 @@ use std::os::raw::c_char;
 fn layer_name_pointers(entry: &ash::Entry) -> (Vec<std::ffi::CString>, Vec<*const c_char>)
 {
     let available_layers = unsafe { entry.enumerate_instance_layer_properties() }.unwrap();
-    let layer_names: Vec<std::ffi::CString> = if DEBUG_MODE
-    {
-        vec!
-        [
-            std::ffi::CString::from(c"VK_LAYER_KHRONOS_validation"),
-            std::ffi::CString::from(c"VK_LAYER_LUNARG_monitor")
-        ]
-    } else { vec![] };
+    let layer_names: Vec<std::ffi::CString> =
+        if DEBUG_MODE { vec![std::ffi::CString::from(c"VK_LAYER_KHRONOS_validation")] }
+        else { vec![] };
     let layer_name_pointers = layer_names.iter()
         .filter(|name| available_layers.iter().any(|available| unsafe
         {
@@ -66,30 +61,6 @@ fn surface(entry: &ash::Entry, instance: &ash::Instance, window: &dyn HasBothHan
     unsafe { ash_window::create_surface(entry, instance, window.display_handle().unwrap().as_raw(), window.window_handle().unwrap().as_raw(), None) }.unwrap()
 }
 
-//the debug callback
-unsafe extern "system" fn vulkan_debug_utils_callback
-(
-    message_severity: vk::DebugUtilsMessageSeverityFlagsEXT,
-    message_type: vk::DebugUtilsMessageTypeFlagsEXT,
-    p_callback_data: *const vk::DebugUtilsMessengerCallbackDataEXT,
-    _p_user_data: *mut std::ffi::c_void,
-) -> vk::Bool32
-{
-    let names: String = std::slice::from_raw_parts((*p_callback_data).p_objects, (*p_callback_data).object_count as usize)
-        .iter()
-        .flat_map(|obj|
-            if obj.p_object_name.is_null() { None }
-            else { Some(std::ffi::CStr::from_ptr(obj.p_object_name).to_str().unwrap()) }
-        )
-        .intersperse(", ")
-        .collect();
-    let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
-    let severity = format!("{:?}", message_severity).to_lowercase();
-    let ty = format!("{:?}", message_type).to_lowercase();
-    println!("[{names}][{}][{}] {:?}", severity, ty, message);
-    vk::FALSE
-}
-
 pub unsafe trait HasBothHandles: raw_window_handle::HasDisplayHandle + raw_window_handle::HasWindowHandle {}
 unsafe impl<T: raw_window_handle::HasDisplayHandle + raw_window_handle::HasWindowHandle> HasBothHandles for T {}
 
@@ -125,26 +96,8 @@ impl Instance
             
         let (instance, debug_utils) = if debug_ext
         {   
-            let mut debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT::default()
-                .message_severity
-                (
-                    vk::DebugUtilsMessageSeverityFlagsEXT::ERROR
-                  | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
-                  | vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
-                  //| vk::DebugUtilsMessageSeverityFlagsEXT::INFO
-                ).message_type
-                (
-                    vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION
-                    //| vk::DebugUtilsMessageTypeFlagsEXT::PERFORMANCE
-                    //| vk::DebugUtilsMessageTypeFlagsEXT::GENERAL
-                ).pfn_user_callback(Some(vulkan_debug_utils_callback));
-            let instance_create_info = instance_create_info.push_next(&mut debug_create_info);
-            let instance = unsafe { entry.create_instance(&instance_create_info, None).unwrap() };
-
-            let debug_utils = ash::ext::debug_utils::Instance::new(&entry, &instance);
-            let debug_utils_messenger = unsafe { debug_utils.create_debug_utils_messenger(&debug_create_info, None).unwrap() };
-            let debug_utils = Some((debug_utils, debug_utils_messenger));
-            (instance, debug_utils)
+            let (instance, debug_utils) = debug::create_instance(&entry, instance_create_info);
+            (instance, Some(debug_utils))
         } else
         {
             let instance = unsafe { entry.create_instance(&instance_create_info, None).unwrap() };
