@@ -253,9 +253,9 @@ impl Drop for BufferMap<'_>
 }
  */
 
-impl<'a> CommandBuffer<'a>
+impl CommandBuffer
 {
-    pub fn copy_buffer<'b, 'c>(self, queue: &Queue, src: &'b Buffer, dst: &'c Buffer, mark: Fence) -> CopyFence<'a, 'b, 'c>
+    pub fn copy_buffer<'a, 'b>(self, queue: &Queue, src: &'a Buffer, dst: &'b Buffer, mark: Fence) -> CopyFence<'a, 'b>
     {
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::copy_buffer: Wrong queue family."); }
         if DEBUG_MODE && !self.pool.queue_family_flags.contains(vk::QueueFlags::TRANSFER) { panic!("CommandBuffer::copy_buffer: This queue family does not support transfer operations."); }
@@ -286,7 +286,7 @@ impl<'a> CommandBuffer<'a>
     }
 }
 
-impl<'a, 'b> CommandBufferRecord<'a, 'b>
+impl<'a> CommandBufferRecord<'a>
 {
     pub fn copy_view<T>(&self, src_buf: &Buffer, src_view: &BufferView<T>, dst_buf: &Buffer, dst_view: &BufferView<T>, usage: CopyViewUsage, stage: WaitStage)
     {

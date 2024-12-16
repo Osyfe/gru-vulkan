@@ -25,8 +25,7 @@ pub use image::*;
 pub use command::*;
 //pub use debug::*;
 
-use std::marker::PhantomData;
-use std::sync::{Arc, Mutex};
+use std::{marker::PhantomData, sync::{Arc, Mutex}, rc::Rc};
 use ash::{self, vk};
 use gpu_allocator::vulkan as alloc;
 
@@ -401,7 +400,7 @@ pub struct Compute
     compute: vk::Pipeline
 }
 
-pub struct CommandPool
+struct RawCommandPool
 {
     device: Arc<RawDevice>,
     pool: vk::CommandPool,
@@ -409,9 +408,14 @@ pub struct CommandPool
     queue_family_flags: vk::QueueFlags
 }
 
-pub struct CommandBuffer<'a>
+pub struct CommandPool
 {
-    pool: &'a CommandPool,
+    pool: Rc<RawCommandPool>
+}
+
+pub struct CommandBuffer
+{
+    pool: Rc<RawCommandPool>,
     command_buffer: vk::CommandBuffer
 }
 
@@ -437,10 +441,10 @@ pub struct Fence
     fence: vk::Fence
 }
 
-pub struct CopyFence<'a, 'b, 'c>
+pub struct CopyFence<'a, 'b>
 {
     pub mark: Fence,
-    pub command_buffer: CommandBuffer<'a>,
-    _src: &'b (),
-    _dst: &'c ()
+    pub command_buffer: CommandBuffer,
+    _src: &'a (),
+    _dst: &'b ()
 }

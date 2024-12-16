@@ -139,7 +139,7 @@ impl Drop for Compute
     }
 }
 
-impl Drop for CommandPool
+impl Drop for RawCommandPool
 {
     fn drop(&mut self)
     {
@@ -147,7 +147,7 @@ impl Drop for CommandPool
     }
 }
 
-impl Drop for CommandBuffer<'_>
+impl Drop for CommandBuffer
 {
     fn drop(&mut self)
     {

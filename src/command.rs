@@ -8,7 +8,8 @@ impl Device
             .queue_family_index(queue_family.index as u32)
             .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
         let command_pool = unsafe { self.0.logical_device.create_command_pool(&command_pool_info, None) }.unwrap();
-        CommandPool { device: self.0.clone(), pool: command_pool, queue_family_index: queue_family.index, queue_family_flags: queue_family.flags }
+        let raw_pool = RawCommandPool { device: self.0.clone(), pool: command_pool, queue_family_index: queue_family.index, queue_family_flags: queue_family.flags };
+        CommandPool { pool: Rc::new(raw_pool) }
     }
 }
 
@@ -17,10 +18,10 @@ impl CommandPool
     pub fn new_command_buffer(&self) -> CommandBuffer
     {
         let command_bufffer_allocate_info = vk::CommandBufferAllocateInfo::default()
-            .command_pool(self.pool)
+            .command_pool(self.pool.pool)
             .command_buffer_count(1);
-        let command_buffer = unsafe { self.device.logical_device.allocate_command_buffers(&command_bufffer_allocate_info) }.unwrap()[0];
-        CommandBuffer { pool: self, command_buffer }
+        let command_buffer = unsafe { self.pool.device.logical_device.allocate_command_buffers(&command_bufffer_allocate_info) }.unwrap()[0];
+        CommandBuffer { pool: Rc::clone(&self.pool), command_buffer }
     }
 }
 
@@ -54,10 +55,10 @@ impl DrawMode
     }
 }
 
-impl<'a> CommandBuffer<'a>
+impl CommandBuffer
 {
     #[inline]
-    pub fn record<'b>(&'b mut self) -> CommandBufferRecord<'a, 'b>
+    pub fn record<'a>(&'a mut self) -> CommandBufferRecord<'a>
     {
         let command_buffer_begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::empty());
@@ -90,12 +91,12 @@ impl<'a> CommandBuffer<'a>
     }
 }
 
-pub struct CommandBufferRecord<'a, 'b>
+pub struct CommandBufferRecord<'a>
 {
-    pub(crate) buffer: &'b mut CommandBuffer<'a>
+    pub(crate) buffer: &'a mut CommandBuffer
 }
             
-impl<'a, 'b> CommandBufferRecord<'a, 'b>
+impl<'a> CommandBufferRecord<'a>
 {
     #[inline]
     pub fn bind_compute(&mut self, compute: &Compute) -> &mut Self
@@ -152,7 +153,7 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
     }
 
     #[inline]
-    pub fn render_pass<'c>(&'c mut self, render_pass: &RenderPass, framebuffer: &Framebuffer) -> CommandBufferRecordRenderPass<'a, 'b, 'c>
+    pub fn render_pass<'b>(&'b mut self, render_pass: &RenderPass, framebuffer: &Framebuffer) -> CommandBufferRecordRenderPass<'a, 'b>
     {
         let (width, height) = framebuffer.size;
         let render_pass_begin_info = vk::RenderPassBeginInfo::default()
@@ -205,7 +206,7 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
     */
 }
 
-impl Drop for CommandBufferRecord<'_, '_>
+impl Drop for CommandBufferRecord<'_>
 {
     #[inline]
     fn drop(&mut self)
@@ -214,12 +215,12 @@ impl Drop for CommandBufferRecord<'_, '_>
     }
 }
 
-pub struct CommandBufferRecordRenderPass<'a, 'b, 'c>
+pub struct CommandBufferRecordRenderPass<'a, 'b>
 {
-    pub(crate) record: &'c mut CommandBufferRecord<'a, 'b>
+    pub(crate) record: &'b mut CommandBufferRecord<'a>
 }
 
-impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
+impl<'a, 'b> CommandBufferRecordRenderPass<'a, 'b>
 {
     #[inline]
     pub fn next_subpass(&mut self) -> &mut Self
@@ -299,7 +300,7 @@ impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
     }
 }
 
-impl Drop for CommandBufferRecordRenderPass<'_, '_, '_>
+impl Drop for CommandBufferRecordRenderPass<'_, '_>
 {
     #[inline]
     fn drop(&mut self)

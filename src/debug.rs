@@ -74,7 +74,7 @@ impl Swapchain
     }
 }
 
-impl<'a, 'b> CommandBufferRecord<'a, 'b>
+impl<'a> CommandBufferRecord<'a>
 {
     #[inline]
     pub fn debug_insert_label(&mut self, label: &str) -> &mut Self
@@ -92,7 +92,7 @@ impl<'a, 'b> CommandBufferRecord<'a, 'b>
     }
 }
 
-impl<'a, 'b, 'c> CommandBufferRecordRenderPass<'a, 'b, 'c>
+impl<'a, 'b> CommandBufferRecordRenderPass<'a, 'b>
 {
     #[inline]
     pub fn debug_insert_label(&mut self, label: &str) -> &mut Self
@@ -149,4 +149,4 @@ impl_nameable!(DescriptorSet, vk::DescriptorSet, descriptor_set, pool.device);
 impl_nameable!(RenderPass, vk::RenderPass, render_pass, device);
 impl_nameable!(Pipeline, vk::Pipeline, pipeline, device);
 impl_nameable!(Compute, vk::Pipeline, compute, device);
-impl_nameable!(CommandBuffer<'a>, vk::CommandBuffer, command_buffer, pool.device);
+impl_nameable!(CommandBuffer, vk::CommandBuffer, command_buffer, pool.device);

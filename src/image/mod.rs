@@ -134,9 +134,9 @@ impl ImageBuffer
     }
 }
 
-impl<'a> CommandBuffer<'a>
+impl CommandBuffer
 {
-    pub fn copy_to_image<'b, 'c>(self, queue: &Queue, src: &'b ImageBuffer, dst: &'c Image, layer: u32, mark: Fence) -> CopyFence<'a, 'b, 'c>
+    pub fn copy_to_image<'a, 'b>(self, queue: &Queue, src: &'a ImageBuffer, dst: &'b Image, layer: u32, mark: Fence) -> CopyFence<'a, 'b>
     {
         if DEBUG_MODE { if let ImageUsage::Attachment { .. } = dst.image_usage { panic!("CommandBuffer::copy_image: Cannot transfer to framebuffer."); } }
         if DEBUG_MODE && self.pool.queue_family_index != queue.index { panic!("CommandBuffer::copy_image: Wrong queue family."); }
@@ -256,7 +256,7 @@ impl<'a> CommandBuffer<'a>
         CopyFence { mark, command_buffer: self, _src: &(), _dst: &() }
     }
 
-    pub fn copy_from_image<'b, 'c>(self, queue: &Queue, src: CopyImageSource<'c>, dst: &'b ImageBuffer, mark: Fence) -> CopyFence<'a, 'b, 'c>
+    pub fn copy_from_image<'a, 'b>(self, queue: &Queue, src: CopyImageSource<'a>, dst: &'b ImageBuffer, mark: Fence) -> CopyFence<'a, 'b>
     {
         let (legal, image, image_type, layout) = match src
         {
