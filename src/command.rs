@@ -61,7 +61,7 @@ impl CommandBuffer
     pub fn record<'a>(&'a mut self) -> CommandBufferRecord<'a>
     {
         let command_buffer_begin_info = vk::CommandBufferBeginInfo::default()
-            .flags(vk::CommandBufferUsageFlags::empty());
+            .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         unsafe { self.pool.device.logical_device.begin_command_buffer(self.command_buffer, &command_buffer_begin_info) }.unwrap();
         CommandBufferRecord { buffer: self }
     }

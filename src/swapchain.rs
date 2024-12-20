@@ -112,11 +112,6 @@ impl Swapchain
     {
         SwapchainObjects { objects: (0..self.count).map(|index| constructor(&SwapchainObjectIndex { index })).collect() }
     }
-
-    pub fn new_cycle<T>(&self, constructor: &mut dyn Fn() -> T) -> SwapchainCycle<T>
-    {
-        SwapchainCycle { objects: (0..self.count).map(|_| constructor()).collect() }
-    }
 }
 
 pub struct SwapchainObjectIndex
@@ -174,58 +169,35 @@ impl<T> SwapchainObjects<T>
     }
 }
 
-pub struct SwapchainCycle<T>
+pub struct SwapchainCycle<const N: usize, T>
 {
-    objects: Box<[T]>
+    objects: [T; N],
+    index: usize
 }
 
-impl<T> SwapchainCycle<T>
+impl<const N: usize, T> SwapchainCycle<N, T>
 {
-    #[inline]
-    pub fn get(&self, swapchain: &Swapchain) -> &T
+    pub fn new(constructor: &mut dyn Fn() -> T) -> Self
     {
-        &self.objects[swapchain.cycle_index.get()]
+        SwapchainCycle { objects: std::array::from_fn(|_| constructor()), index: 0 }
     }
 
     #[inline]
-    pub fn get_mut(&mut self, swapchain: &Swapchain) -> &mut T
+    pub fn slice(&mut self) -> &mut [T; N]
     {
-        &mut self.objects[swapchain.cycle_index.get()]
-    }
-	
-	#[inline]
-    pub fn get_previous(&self, swapchain: &Swapchain) -> &T
-    {
-        &self.objects[(swapchain.cycle_index.get() + swapchain.count - 1) % swapchain.count]
+        &mut self.objects
     }
 
     #[inline]
-    pub fn get_previous_mut(&mut self, swapchain: &Swapchain) -> &mut T
+    pub fn get_current(&mut self) -> &mut T
     {
-        &mut self.objects[(swapchain.cycle_index.get() + swapchain.count - 1) % swapchain.count]
+        &mut self.objects[self.index]
     }
 
     #[inline]
-    pub fn iter(&self) -> std::slice::Iter<T>
+    pub fn get_next(&mut self) -> &mut T
     {
-        self.objects.iter()
-    }
-
-    #[inline]
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<T>
-    {
-        self.objects.iter_mut()
-    }
-
-    #[inline]
-    pub fn map<U, F: FnMut(&T) -> U>(&self, f: F) -> SwapchainCycle<U>
-    {
-        SwapchainCycle { objects: self.objects.iter().map(f).collect() }
-    }
-
-    #[inline]
-    pub fn into_map<U, F: FnMut(T) -> U>(self, f: F) -> SwapchainCycle<U>
-    {
-        SwapchainCycle { objects: self.objects.into_vec().into_iter().map(f).collect() }
+        self.index = (self.index + 1) % N;
+        self.get_current()
     }
 }

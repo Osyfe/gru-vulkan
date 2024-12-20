@@ -65,15 +65,6 @@ pub(crate) fn create_instance(entry: &ash::Entry, instance_create_info: vk::Inst
     (instance, debug_utils)
 }
 
-impl Swapchain
-{
-    #[inline]
-    pub fn debug_get_indices(&self, index: &SwapchainObjectIndex) -> (usize, usize)
-    {
-        (index.index, self.cycle_index.get())
-    }
-}
-
 impl<'a> CommandBufferRecord<'a>
 {
     #[inline]
