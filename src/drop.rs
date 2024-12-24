@@ -104,7 +104,7 @@ impl Drop for Framebuffer
     }
 }
 
-impl Drop for RenderPass
+impl Drop for RawRenderPass
 {
     fn drop(&mut self)
     {

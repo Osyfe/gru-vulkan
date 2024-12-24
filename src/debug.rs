@@ -115,12 +115,12 @@ trait NameableObject: Sized
 
 macro_rules! impl_nameable
 {
-    ($ty: ident $(<$($lt: lifetime),+>)?, $handle: ty, $field: ident, $($device: tt).+) =>
+    ($ty: ident $(<$($lt: lifetime),+>)?, $handle: ty, $($field: tt).+, $($device: tt).+) =>
     {
         impl$(<$($lt),+>)? NameableObject for $ty$(<$($lt),+>)?
         {
             type Handle = $handle;
-            fn vk_handle(&self) -> Self::Handle { self.$field }
+            fn vk_handle(&self) -> Self::Handle { self.$($field).+ }
             fn device(&self) -> &RawDevice { &self.$($device).+ }
         }
 
@@ -137,7 +137,7 @@ macro_rules! impl_nameable
 impl_nameable!(Buffer, vk::Buffer, buffer, device);
 impl_nameable!(Image, vk::Image, image, device);
 impl_nameable!(DescriptorSet, vk::DescriptorSet, descriptor_set, pool.device);
-impl_nameable!(RenderPass, vk::RenderPass, render_pass, device);
+impl_nameable!(RenderPass, vk::RenderPass, raw.render_pass, raw.device);
 impl_nameable!(Pipeline, vk::Pipeline, pipeline, device);
 impl_nameable!(Compute, vk::Pipeline, compute, device);
 impl_nameable!(CommandBuffer, vk::CommandBuffer, command_buffer, pool.device);

@@ -66,7 +66,7 @@ impl Device
     pub fn new_pipeline
     (
         &self,
-        render_pass: &RenderPass,
+        render_pass: &RenderPassLayout,
         subpass: u32,
         vertex_shader_spirv: Shader,
         fragment_shader_spirv: Shader,
@@ -171,7 +171,7 @@ impl Device
             .depth_stencil_state(&depth_stencil_info)
             .color_blend_state(&color_blend_info)
             .layout(layout.layout)
-            .render_pass(render_pass.render_pass)
+            .render_pass(render_pass.raw.render_pass)
             .subpass(subpass);
         let pipeline = unsafe { self.0.logical_device.create_graphics_pipelines(vk::PipelineCache::null(), &[pipeline_info], None) }.unwrap()[0];
         unsafe
