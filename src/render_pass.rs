@@ -267,8 +267,7 @@ impl Device
             }
             #[allow(unused_parens)] break 'rp (unsafe { self.0.logical_device.create_render_pass(&render_pass_info, None) });
         }.unwrap();
-        let raw = Arc::new(RawRenderPass { device: self.0.clone(), render_pass });
-        RenderPass { raw, clear_values: Box::from(clear_colors) }
+        RenderPass { device: self.0.clone(), render_pass, clear_values: Box::from(clear_colors) }
     }
 
     pub fn new_framebuffer(&self, render_pass: &RenderPass, attachments: &[FramebufferAttachment]) -> Framebuffer
@@ -308,21 +307,13 @@ impl Device
         	}
         }
         let framebuffer_info = vk::FramebufferCreateInfo::default()
-            .render_pass(render_pass.raw.render_pass)
+            .render_pass(render_pass.render_pass)
             .attachments(&attachments_vec)
             .width(width)
             .height(height)
             .layers(1);
         let framebuffer = unsafe { self.0.logical_device.create_framebuffer(&framebuffer_info, None) }.unwrap();
         Framebuffer { device: self.0.clone(), image_views, framebuffer, size: (width, height) }
-    }
-}
-
-impl RenderPass
-{
-    pub fn layout(&self) -> RenderPassLayout
-    {
-        RenderPassLayout { raw: self.raw.clone() }
     }
 }
 

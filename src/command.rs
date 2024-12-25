@@ -157,7 +157,7 @@ impl<'a> CommandBufferRecord<'a>
     {
         let (width, height) = framebuffer.size;
         let render_pass_begin_info = vk::RenderPassBeginInfo::default()
-            .render_pass(render_pass.raw.render_pass)
+            .render_pass(render_pass.render_pass)
             .framebuffer(framebuffer.framebuffer)
             .render_area(vk::Rect2D
             {

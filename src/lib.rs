@@ -347,22 +347,11 @@ pub struct Framebuffer
     size: (u32, u32)
 }
 
-struct RawRenderPass
-{
-    device: Arc<RawDevice>,
-    render_pass: vk::RenderPass
-}
-
 pub struct RenderPass
 {
-    raw: Arc<RawRenderPass>,
+    device: Arc<RawDevice>,
+    render_pass: vk::RenderPass,
     clear_values: Box<[vk::ClearValue]>
-}
-
-#[derive(Clone)]
-pub struct RenderPassLayout
-{
-    raw: Arc<RawRenderPass>
 }
 
 pub struct PipelineLayout
