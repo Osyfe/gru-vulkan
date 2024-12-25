@@ -136,7 +136,7 @@ impl<'a> CommandBufferRecord<'a>
     pub fn push_constant<T>(&mut self, pipeline_layout: &PipelineLayout, push_constant: &T) -> &mut Self
     {
         let (shader_stages, size) = pipeline_layout.push_constant.expect("CommandBufferRecord::push_constant: This layout has no push constant.");
-        if DEBUG_MODE && std::mem::size_of::<T>() as u32 != size { panic!("CommandBufferRecord::push_constant: Incompatible data size."); }
+        if DEBUG_MODE && std::mem::size_of::<T>() as u32 != size { panic!("CommandBufferRecord::push_constant: Incompatible data size ({} vs {}).", std::mem::size_of::<T>(), size); }
         unsafe
         {
             let data = std::slice::from_raw_parts(push_constant as *const T as *const u8, std::mem::size_of::<T>());

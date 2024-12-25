@@ -49,10 +49,9 @@ impl Device
                 if push_constant.size > 128 { panic!("Device::new_pipeline_layout: Push constant size is larger than 128 bytes."); }
             }
             let shader_stages =
-                if !push_constant.vertex && !push_constant.fragment { panic!("Device::new_pipeline_layout: Push constant neither in vertex nor fragment shader."); }
-                else if push_constant.vertex { vk::ShaderStageFlags::VERTEX }
-                else if push_constant.fragment { vk::ShaderStageFlags::FRAGMENT }
-                else { vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT };
+                if push_constant.visibility.vertex { vk::ShaderStageFlags::VERTEX } else { vk::ShaderStageFlags::empty() }
+              | if push_constant.visibility.fragment { vk::ShaderStageFlags::FRAGMENT } else { vk::ShaderStageFlags::empty() }
+              | if push_constant.visibility.compute { vk::ShaderStageFlags::COMPUTE } else { vk::ShaderStageFlags::empty() };
             push_constant_ranges.push(vk::PushConstantRange { stage_flags: shader_stages, offset: 0, size: push_constant.size });
             Some((shader_stages, push_constant.size))
         } else { None };
@@ -186,9 +185,8 @@ impl Device
 #[derive(Clone, Copy)]
 pub struct PushConstantInfo
 {
-    pub vertex: bool,
-    pub fragment: bool,
-    pub size: u32
+    pub size: u32,
+    pub visibility: DescriptorVisibility,
 }
 
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
