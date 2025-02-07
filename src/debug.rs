@@ -20,7 +20,7 @@ unsafe extern "system" fn vulkan_debug_utils_callback
         .collect();
     */
     let ty = format!("{:?}", message_type).to_lowercase();
-    let message = std::ffi::CStr::from_ptr((*p_callback_data).p_message);
+    let message = unsafe { std::ffi::CStr::from_ptr((*p_callback_data).p_message) };
 
     #[cfg(feature = "log")]
     {

@@ -3,7 +3,7 @@ name = "gru-vulkan-derive"
 version = "0.1.0"
 authors = ["Jannik Fehre"]
 license = "MIT"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 syn = "2.0.79"
