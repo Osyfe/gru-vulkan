@@ -116,18 +116,13 @@ impl DescriptorVisibility
 
 impl DescriptorBindingInfo
 {
-    pub fn from_storage<T: StorageStructReprC>() -> Self
+    pub fn from_storage<T: StorageStructReprC>(visibility: DescriptorVisibility) -> Self
     {
         Self
         {
             ty: DescriptorBindingType::Storage,
             count: 1,
-            visibility: DescriptorVisibility
-            {
-                compute: true,
-                vertex: false,
-                fragment: false
-            }
+            visibility
         }
     }
 
