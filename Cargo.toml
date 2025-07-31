@@ -22,5 +22,5 @@ raw-window-handle = "0.6.2"
 inline-spirv = { version = "0.2.1", default-features = false, features = ["glsl"] }
 gpu-allocator = { version = "0.27.0", default-features = false, features = ["vulkan"] }
 log = { version = "0.4.22", optional = true }
-gru-misc = { path = "../gru-misc", optional = true }
+gru-misc = { git = "https://github.com/Osyfe/gru-misc.git", optional = true }
 serde = { version = "1.0.216", default-features = false, features = ["derive"], optional = true }
