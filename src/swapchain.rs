@@ -139,13 +139,13 @@ impl<T> SwapchainObjects<T>
     }
 
     #[inline]
-    pub fn iter(&self) -> std::slice::Iter<T>
+    pub fn iter<'a>(&'a self) -> std::slice::Iter<'a, T>
     {
         self.objects.iter()
     }
 
     #[inline]
-    pub fn iter_mut(&mut self) -> std::slice::IterMut<T>
+    pub fn iter_mut<'a>(&'a mut self) -> std::slice::IterMut<'a, T>
     {
         self.objects.iter_mut()
     }

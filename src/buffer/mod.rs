@@ -173,7 +173,7 @@ pub enum BufferUsage
 impl Buffer
 {
     #[inline]
-    pub fn map(&mut self) -> BufferMap
+    pub fn map<'a>(&'a mut self) -> BufferMap<'a>
     {
         if DEBUG_MODE { if self.buffer_usage == BufferUsage::Static { panic!("Buffer::map: Static buffers cannot be mapped.") } }
         let buffer_ptr = self.allocation.as_ref().unwrap().mapped_ptr().unwrap().as_ptr();
