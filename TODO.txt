@@ -6,6 +6,7 @@ depth buffer formats?
 more vertex attribute types
 refine implicit external dependencies in render_pass?
 storage buffer arrays?
+debug stuff release warnings (only Linux?)
 
 crash_diagnostic_layer? (https://vulkan.lunarg.com/doc/sdk/1.3.296.0/windows/crash_diagnostic_layer.html)
 synchronization talks: https://www.youtube.com/watch?v=JvAIdtAZnAw, https://www.youtube.com/watch?v=GiKbGWI4M-Y&t=2510s
